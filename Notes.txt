@@ -1,0 +1,5 @@
+First part:
+make an CCA2 symmetric encryption from the weaker assumption of CPA encryption.
+In otherwords we making an encryption that check for the MAC, message
+authentication code, which means that it checks for the correct cipher text.
+This prevent the manipulation of E(x+y)=E(x)E(y)
