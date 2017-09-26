@@ -55,7 +55,12 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	/* TODO: write this.  Use the prf to get random byte strings of
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
-	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
+	 * pieces of the key ({en,de}crypting exponents, and n=pq).
+         n = pq where p and q are prime
+	 phi(n) = (p-1)(q-1) 
+	 Encryption exponents = m^e mod n = Cipher text // e should be known
+	 decryption exponents = c^d mod n = m // d we will find out from d*e mod phi(n)
+	 */
 	return 0;
 }
 
