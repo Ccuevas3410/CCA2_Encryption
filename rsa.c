@@ -55,12 +55,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	/* TODO: write this.  Use the prf to get random byte strings of
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
-	 * pieces of the key ({en,de}crypting exponents, and n=pq).
-         n = pq where p and q are prime
-	 phi(n) = (p-1)(q-1) 
-	 Encryption exponents = m^e mod n = Cipher text // e should be known
-	 decryption exponents = c^d mod n = m // d we will find out from d*e mod phi(n)
-	 */
+	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
 	return 0;
 }
 
@@ -69,13 +64,31 @@ size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 {
 	/* TODO: write this.  Use BYTES2Z to get integers, and then
 	 * Z2BYTES to write the output buffer. */
-	return 0; /* TODO: return should be # bytes written */
+	NEWZ(mg);
+	NEWZ(ct);
+
+	BYTES2Z(mg,inBuf,len);
+	mpz_powm(ct,mg,K->e,K->n); // ct = message^e mod n
+	Z2BYTES(outBuf,len,ct);
+
+	mpz_clear(mg); mpz_clear(ct);
+
+	return len; /* TODO: return should be # bytes written */
 }
 size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
 	/* TODO: write this.  See remarks above. */
-	return 0;
+	NEWZ(ct);
+	NEWZ(mg);
+	
+	BYTES2Z(ct,inBuf,len);
+	mpz_powm(outBuf,inBuf,K->d,K->n); // mg = c^d mod n
+	Z2BYTES(pt,outBuf,len);	
+
+	mpz_clear(ct); mpz_clear(pt);
+
+	return len;
 }
 
 size_t rsa_numBytesN(RSA_KEY* K)
