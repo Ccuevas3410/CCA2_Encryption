@@ -57,17 +57,17 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
-	unsigned char p[32];
-	unsigned char q[32];
-	randBytes(p,keyBits/8);
-	randBytes(q,keyBits/8);
-	const char* firstPrime = p;
-    NEWZ(P);
-    mpz_set_str(P,firstPrime,10);
-    NEWZ(nextP);
-    mpz_nextprime(nextP,P);  //setting prime on nextP
-	mpz_set(K->p,nextP);    //sets P into the initKey
-	const char* secPrime = q;
+	unsigned char p[32];// define space for prime p
+	unsigned char q[32];// define space for prime q
+	randBytes(p,keyBits/8);// generate random bytes
+	randBytes(q,keyBits/8);// generate random bytes
+	const char* const firstPrime = p; // put p inside char
+    	NEWZ(P);// define gmp variable
+    	mpz_set_str(P,firstPrime,10);// set our random bytes to a string
+    	NEWZ(nextP);
+    	mpz_nextprime(nextP,P);  //setting prime on nextP
+	mpz_set_(K->p,nextP);    //sets P into the initKey
+	const char* const secPrime = q;
 	NEWZ(Q);
 	mpz_set_str(Q,secPrime,10);
 	NEWZ(nextQ);
