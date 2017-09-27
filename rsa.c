@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <gmp.h> 
 #include "rsa.h"
 #include "prf.h"
 
@@ -55,12 +56,62 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	/* TODO: write this.  Use the prf to get random byte strings of
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
-	 * pieces of the key ({en,de}crypting exponents, and n=pq).
-         n = pq where p and q are prime
-	 phi(n) = (p-1)(q-1) 
-	 Encryption exponents = m^e mod n = Cipher text // e should be known
-	 decryption exponents = c^d mod n = m // d we will find out from d*e mod phi(n)
-	 */
+	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
+	unsigned char p[32];
+	unsigned char q[32];
+	randBytes(p,keyBits/8);
+	randBytes(q,keyBits/8);
+	const char* const firstPrime = p;
+    NEWZ(P);
+    mpz_set_str(P,firstPrime,10);
+    NEWZ(nextP);
+    mpz_nextprime(nextP,P);  //setting prime on nextP
+	mpz_set_(K->p,nextP);    //sets P into the initKey
+	const char* const secPrime = q;
+	NEWZ(Q);
+	mpz_set_str(Q,secPrime,10);
+	NEWZ(nextQ);
+	mpz_nextprime(nextQ,Q);  //setting prime on nextQ
+	mpz_set(K->q,nextQ);     //sets Q into the initKey
+
+	NEWZ(N);
+	mpz_mul(N,P,Q);          //computes N.
+	mpz_set(K->n,N);         //sets N to the initKey
+	NEWZ(phi);
+	mpz_mul(phi,P-1,Q-1);
+	
+	NEWZ(temp);
+	temp=3
+	while(true)
+	{
+		mpz_gcd(K->e,temp,phi);
+		if(mpq_comp_ui(K->e,1,1)== 1) //mpz comp
+		{
+			mpz_set(K->e,temp);
+			return false
+		}
+		else
+			temp+=2; 
+	}
+	NEWZ(D1); //holds D1*2
+	NEWZ(D2); //holds D1+1
+	mpz_mul_ui(D1,phi,2); //multiplies phi*2
+	mpz_add_ui(D2,D1,1);  //adds (phi*2)+1
+	mpz_cdiv_q(K->d,D2,K->e)  //divides ((phi*2)+1)
+
+//clearing memories
+	mpz_clear(P);
+	mpz_clear(nextP);
+	mpz_clear(nextQ);
+	mpz_clear(Q);
+	mpz_clear(nextQ);
+	mpz_clear(N);
+	mpz_clear(phi);
+	mpz_clear(temp);
+	mpz_clear(D1);
+	mpz_clear(D2);
+
+
 	return 0;
 }
 
