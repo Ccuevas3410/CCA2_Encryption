@@ -1,10 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <gmp.h> 
 #include "rsa.h"
 #include "prf.h"
-
 /* NOTE: a random composite surviving 10 Miller-Rabin tests is extremely
  * unlikely.  See Pomerance et al.:
  * http://www.ams.org/mcom/1993-61-203/S0025-5718-1993-1189518-9/
@@ -57,17 +57,15 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
-<<<<<<< HEAD
-=======
-	unsigned char p[32];
-	unsigned char q[32];
-	randBytes(p,keyBits/8);
-	randBytes(q,keyBits/8);
-	const char* const firstPrime = p;
-    NEWZ(P);
-    mpz_set_str(P,firstPrime,10);
-    NEWZ(nextP);
-    mpz_nextprime(nextP,P);  //setting prime on nextP
+	unsigned char p[32];// define space for prime p
+	unsigned char q[32];// define space for prime q
+	randBytes(p,keyBits/8);// generate random bytes
+	randBytes(q,keyBits/8);// generate random bytes
+	const char* const firstPrime = p; // put p inside char
+    	NEWZ(P);// define gmp variable
+    	mpz_set_str(P,firstPrime,10);// set our random bytes to a string
+    	NEWZ(nextP);
+    	mpz_nextprime(nextP,P);  //setting prime on nextP
 	mpz_set_(K->p,nextP);    //sets P into the initKey
 	const char* const secPrime = q;
 	NEWZ(Q);
@@ -83,23 +81,27 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_mul(phi,P-1,Q-1);
 	
 	NEWZ(temp);
-	temp=3
-	while(true)
+	NEWZ(hold);
+	mpz_set_ui(temp,3);
+	bool a = true;
+	while(a)
 	{
-		mpz_gcd(K->e,temp,phi);
+		mpz_gcd(K->e,temp,phi);  //temp and phi needs to be const mpz_t type.
 		if(mpq_comp_ui(K->e,1,1)== 1) //mpz comp
 		{
 			mpz_set(K->e,temp);
-			return false
+			a = false;
 		}
 		else
-			temp+=2; 
+		{
+		    mpz_add_ui(temp,hold,2);
+		}
 	}
 	NEWZ(D1); //holds D1*2
 	NEWZ(D2); //holds D1+1
 	mpz_mul_ui(D1,phi,2); //multiplies phi*2
 	mpz_add_ui(D2,D1,1);  //adds (phi*2)+1
-	mpz_cdiv_q(K->d,D2,K->e)  //divides ((phi*2)+1)
+	mpz_cdiv_q(K->d,D2,K->e);  //divides ((phi*2)+1)
 
 //clearing memories
 	mpz_clear(P);
@@ -113,8 +115,6 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_clear(D1);
 	mpz_clear(D2);
 
-
->>>>>>> db5a60ea14723f1f252a8e95e903f84d283a8e3a
 	return 0;
 }
 
@@ -139,8 +139,8 @@ size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 {
 	/* TODO: write this.  See remarks above. */
 	NEWZ(ct);
-	NEWZ(mg);
-	
+	NEWZ(pt);
+		
 	BYTES2Z(ct,inBuf,len);
 	mpz_powm(outBuf,inBuf,K->d,K->n); // mg = c^d mod n
 	Z2BYTES(pt,outBuf,len);	
