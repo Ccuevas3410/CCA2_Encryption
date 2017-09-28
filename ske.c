@@ -67,12 +67,13 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	if(IV == 0)//non IV was given
 	randBytes(IV,len);//we generate random IV of size len
 	
-	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up contect for CT
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
 	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K,IV);//sets up for encryption
 	int num;
-	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len)//doe the encryption
-	EVP_CIPHER_CTX_free(ctx);
-	return num; /* TODO: should return number of bytes written, which
+	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len)//does the encryption
+	EVP_CIPHER_CTX_free(ctx);//free up space
+	return num;//returns number of btyes written
+		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 }
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
