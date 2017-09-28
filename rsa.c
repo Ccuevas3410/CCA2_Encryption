@@ -141,12 +141,16 @@ size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	/* TODO: write this.  See remarks above. */
 	NEWZ(ct);
 	NEWZ(pt);
+	NEWZ(outBuffer);
+	mpz_set_str(outBuffer,outBuf,10);
+	NEWZ(inBuffer);
+	mpz_set_str(inBuffer,inBuf,10);
 		
 	BYTES2Z(ct,inBuf,len);
-	mpz_powm(outBuf,inBuf,K->d,K->n); // mg = c^d mod n
+	mpz_powm(outBuffer,inBuffer,K->d,K->n); // mg = c^d mod n
 	Z2BYTES(pt,outBuf,len);	
 
-	mpz_clear(ct); mpz_clear(pt);
+	mpz_clear(ct); mpz_clear(pt); mpz_clear(outBuffer); mpz_clear(inBuffer);
 
 	return len;
 }
