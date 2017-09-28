@@ -66,7 +66,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
     	mpz_set_str(P,firstPrime,10);// set our random bytes to a string
     	NEWZ(nextP);
     	mpz_nextprime(nextP,P);  //setting prime on nextP
-	mpz_set_(K->p,nextP);    //sets P into the initKey
+	mpz_set(K->p,nextP);    //sets P into the initKey
 	const char* const secPrime = q;
 	NEWZ(Q);
 	mpz_set_str(Q,secPrime,10);
@@ -87,7 +87,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	while(a)
 	{
 		mpz_gcd(K->e,temp,phi);  //temp and phi needs to be const mpz_t type.
-		if(mpq_comp_ui(K->e,1,1)== 1) //mpz comp
+		if(mpz_cmp_ui(K->e,1)== 1) //mpz comp
 		{
 			mpz_set(K->e,temp);
 			a = false;
