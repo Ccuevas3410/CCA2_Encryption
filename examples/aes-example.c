@@ -83,6 +83,6 @@ int ctr_example()
 
 int main()
 {
-    return ctr_example();
-   // return cbc_example();
+   // return ctr_example();
+    return cbc_example();
 }
