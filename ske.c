@@ -38,7 +38,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	 * If entropy is null, just get a random key (you can use the PRF). */
 
 	// If entropy is given applly KDF - HMACSHA512 elseif is null randBytes for random key
-	if(entropy)
+	/*if(entropy)
 	{
 	//	HMAC(EVP_sha512(),*key,key_len,unsigned char*d,int n,
 	//			unsinged char *md, unsigned int*md_len);
@@ -51,7 +51,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	{
 	//	randBytes(//,entLen);
 	}
-	return 0;
+	return 0;*/
 }
 size_t ske_getOutputLen(size_t inputLen)
 {
@@ -63,7 +63,17 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	/* TODO: finish writing this.  Look at ctr_example() in aes-example.c
 	 * for a hint.  Also, be sure to setup a random IV if none was given.
 	 * You can assume outBuf has enough space for the result. */
-	return 0; /* TODO: should return number of bytes written, which
+	//outBuf is the CT, inBuf is the message,
+	if(IV == 0)//non IV was given
+	randBytes(IV,len);//we generate random IV of size len
+	
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
+	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K,IV);//sets up for encryption
+	int num;
+	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len)//does the encryption
+	EVP_CIPHER_CTX_free(ctx);//free up space
+	return num;//returns number of btyes written
+		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 }
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
