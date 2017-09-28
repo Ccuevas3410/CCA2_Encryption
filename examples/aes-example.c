@@ -1,4 +1,5 @@
 /* dumb example to illustrate AES in cbc and ctr modes. */
+/*https://www.openssl.org/docs/man1.1.0/crypto/EVP_CIPHER_CTX_new.html*/
 #include <stdio.h>
 #include <string.h>
 #include <openssl/aes.h>

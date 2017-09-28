@@ -38,7 +38,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	 * If entropy is null, just get a random key (you can use the PRF). */
 
 	// If entropy is given applly KDF - HMACSHA512 elseif is null randBytes for random key
-	if(entropy)
+	/*if(entropy)
 	{
 		HMAC(EVP_sha512(),*key,key_len,unsigned char*d,int n,
 				unsinged char *md, unsigned int*md_len);
@@ -51,7 +51,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	{
 		randBytes(//,entLen);
 	}
-	return 0;
+	return 0;*/
 }
 size_t ske_getOutputLen(size_t inputLen)
 {
