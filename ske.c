@@ -32,8 +32,8 @@
  * the one used in the KDF, so we use hmac with a key. */
 
 /** Generates HMAC and AES KEY
- * Hash KDF_KEY with SHA-512 to get 32 bytes of key
- * and split in half for 
+ * Hash KDF_KEY with SHA-512 to get 64 bytes of key
+ * and split in half for two 32 bytes key, one for 
  * HMAC and other half for AES
  * 
  * precondition: 
@@ -53,8 +53,8 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 
 	// Variable for temporary key storage of length KLEN_SKE
 	// Note KLEN_SKE is 32
-	size_t i = KLEN_SKE*2;
-	unsigned char tempKey[i];
+	size_t KLEN_2X = KLEN_SKE*2;
+	unsigned char tempKey[KLEN_2X];
 
 	// If entropy is given apply KDF - HMACSHA512 elseif is null randBytes for random key
 	if(entropy)
@@ -74,12 +74,12 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 		 *
 		 * Output goes in tempKey
 		 */ 
-		randBytes(tempKey,i);
+		randBytes(tempKey,KLEN_2X);
 	}
 
 	// Copy values into the associated Keys in the object K
-	memcpy(K->hmacKey, tempKey//lower tempkey, KLEN_SKE);
-       	memcpy(K->aesKey, tempKey//upper tempkey, KLEN_SKE);	
+	memcpy(K->hmacKey, tempKey, KLEN_SKE); // lower tempKey
+       	memcpy(K->aesKey, tempKey+KLEN_SKE, KLEN_SKE);	// upper tempKey
 	return 0;
 }
 size_t ske_getOutputLen(size_t inputLen)
