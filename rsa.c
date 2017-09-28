@@ -61,13 +61,13 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	unsigned char q[32];// define space for prime q
 	randBytes(p,keyBits/8);// generate random bytes
 	randBytes(q,keyBits/8);// generate random bytes
-	const char* const firstPrime = p; // put p inside char
+	const char* firstPrime = p; // put p inside char
     	NEWZ(P);// define gmp variable
     	mpz_set_str(P,firstPrime,10);// set our random bytes to a string
     	NEWZ(nextP);
     	mpz_nextprime(nextP,P);  //setting prime on nextP
-	mpz_set_(K->p,nextP);    //sets P into the initKey
-	const char* const secPrime = q;
+	mpz_set(K->p,nextP);    //sets P into the initKey
+	const char* secPrime = q;
 	NEWZ(Q);
 	mpz_set_str(Q,secPrime,10);
 	NEWZ(nextQ);
@@ -78,7 +78,11 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_mul(N,P,Q);          //computes N.
 	mpz_set(K->n,N);         //sets N to the initKey
 	NEWZ(phi);
-	mpz_mul(phi,P-1,Q-1);
+	NEWZ(p1);
+	NEWZ(q1);
+	mpz_sub_ui(p1,P,1);
+	mpz_sub_ui(q1,Q,1);
+	mpz_mul(phi,p1,q1);
 	
 	NEWZ(temp);
 	NEWZ(hold);
@@ -87,14 +91,15 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	while(a)
 	{
 		mpz_gcd(K->e,temp,phi);  //temp and phi needs to be const mpz_t type.
-		if(mpq_comp_ui(K->e,1,1)== 1) //mpz comp
+		if(mpz_cmp_ui(K->e,1)== 1) //mpz comp
 		{
 			mpz_set(K->e,temp);
 			a = false;
 		}
 		else
 		{
-		    mpz_add_ui(temp,hold,2);
+			mpz_set(hold,temp);
+			mpz_add_ui(temp,hold,2);
 		}
 	}
 	NEWZ(D1); //holds D1*2
@@ -134,7 +139,6 @@ size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	return len; /* TODO: return should be # bytes written */
 }
-
 size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
@@ -173,7 +177,6 @@ int rsa_writePublic(FILE* f, RSA_KEY* K)
 	zToFile(f,K->e);
 	return 0;
 }
-
 int rsa_writePrivate(FILE* f, RSA_KEY* K)
 {
 	zToFile(f,K->n);
@@ -183,7 +186,6 @@ int rsa_writePrivate(FILE* f, RSA_KEY* K)
 	zToFile(f,K->d);
 	return 0;
 }
-
 int rsa_readPublic(FILE* f, RSA_KEY* K)
 {
 	rsa_initKey(K); /* will set all unused members to 0 */
@@ -191,7 +193,6 @@ int rsa_readPublic(FILE* f, RSA_KEY* K)
 	zFromFile(f,K->e);
 	return 0;
 }
-
 int rsa_readPrivate(FILE* f, RSA_KEY* K)
 {
 	rsa_initKey(K);
@@ -202,7 +203,6 @@ int rsa_readPrivate(FILE* f, RSA_KEY* K)
 	zFromFile(f,K->d);
 	return 0;
 }
-
 int rsa_shredKey(RSA_KEY* K)
 {
 	/* clear memory for key. */
