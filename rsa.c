@@ -62,10 +62,10 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	randBytes(p,keyBits/8);
 	randBytes(q,keyBits/8);
 	const char* firstPrime = p;
-    NEWZ(P);
-    mpz_set_str(P,firstPrime,10);
-    NEWZ(nextP);
-    mpz_nextprime(nextP,P);  //setting prime on nextP
+	NEWZ(P);
+	mpz_set_str(P,firstPrime,10);
+	NEWZ(nextP);
+	mpz_nextprime(nextP,P);  //setting prime on nextP
 	mpz_set(K->p,nextP);    //sets P into the initKey
 	const char* secPrime = q;
 	NEWZ(Q);
@@ -94,6 +94,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 		}
 		else
 		{
+			mpz_set(hold,temp);
 		    mpz_add_ui(temp,hold,2);
 		}
 	}
