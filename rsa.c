@@ -152,7 +152,7 @@ size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		
 	BYTES2Z(ct,inBuf,len);
 	mpz_powm(outBuffer,inBuffer,K->d,K->n); // mg = c^d mod n
-	Z2BYTES(pt,outBuf,len);	
+	Z2BYTES(outBuf,len,pt);	
 
 	mpz_clear(ct); mpz_clear(pt); mpz_clear(outBuffer); mpz_clear(inBuffer);
 
