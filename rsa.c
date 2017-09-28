@@ -135,7 +135,6 @@ size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	return len; /* TODO: return should be # bytes written */
 }
-
 size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		RSA_KEY* K)
 {
@@ -174,7 +173,6 @@ int rsa_writePublic(FILE* f, RSA_KEY* K)
 	zToFile(f,K->e);
 	return 0;
 }
-
 int rsa_writePrivate(FILE* f, RSA_KEY* K)
 {
 	zToFile(f,K->n);
@@ -184,7 +182,6 @@ int rsa_writePrivate(FILE* f, RSA_KEY* K)
 	zToFile(f,K->d);
 	return 0;
 }
-
 int rsa_readPublic(FILE* f, RSA_KEY* K)
 {
 	rsa_initKey(K); /* will set all unused members to 0 */
@@ -192,7 +189,6 @@ int rsa_readPublic(FILE* f, RSA_KEY* K)
 	zFromFile(f,K->e);
 	return 0;
 }
-
 int rsa_readPrivate(FILE* f, RSA_KEY* K)
 {
 	rsa_initKey(K);
@@ -203,7 +199,6 @@ int rsa_readPrivate(FILE* f, RSA_KEY* K)
 	zFromFile(f,K->d);
 	return 0;
 }
-
 int rsa_shredKey(RSA_KEY* K)
 {
 	/* clear memory for key. */
