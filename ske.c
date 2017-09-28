@@ -90,6 +90,12 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * Oh, and also, return -1 if the ciphertext is found invalid.
 	 * Otherwise, return the number of bytes written.  See aes-example.c
 	 * for how to do basic decryption. */
+
+	if() { 
+
+	}
+	else { return -1; }
+
 	return 0;
 }
 size_t ske_decrypt_file(const char* fnout, const char* fnin,
