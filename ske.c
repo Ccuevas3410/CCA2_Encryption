@@ -31,26 +31,55 @@
 /* need to make sure KDF is orthogonal to other hash functions, like
  * the one used in the KDF, so we use hmac with a key. */
 
+/** Generates HMAC and AES KEY
+ * Hash KDF_KEY with SHA-512 to get 32 bytes of key
+ * and split in half for 
+ * HMAC and other half for AES
+ * 
+ * precondition: 
+ * K = SKE_KEY object containing HMAC and AES Key
+ * entropy = random
+ * entLen = length of entropy
+ * 
+ * postcondition:
+ * K's HMAC and AES Key gets updated
+ */
+
 int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 {
 	/* TODO: write this.  If entropy is given, apply a KDF to it to get
 	 * the keys (something like HMAC-SHA512 with KDF_KEY will work).
 	 * If entropy is null, just get a random key (you can use the PRF). */
 
-	// If entropy is given applly KDF - HMACSHA512 elseif is null randBytes for random key
+	// Variable for temporary key storage of length KLEN_SKE
+	// Note KLEN_SKE is 32
+	size_t i = KLEN_SKE*2;
+	unsigned char tempKey[i];
+
+	// If entropy is given apply KDF - HMACSHA512 elseif is null randBytes for random key
 	if(entropy)
 	{
-		HMAC(EVP_sha512(),*key,key_len,unsigned char*d,int n,
-				unsinged char *md, unsigned int*md_len);
-
-		//from
-		//rkey,BLOCK_LEN,(unsigned char*)mpz_limbs_read(rcount),
-		//sizeof(mp_limb_t)*mpz_size(rcount),outBuf,NULL);
+		/* Computes the MAC of the entLen bytes at entropy using hash
+		 * function EVP_sha512 and the key, KDF_KEY which is HM_LEN 
+		 * bytes long
+		 * 
+		 * Output goes in tempKey and size in NULL
+		 */
+		HMAC(EVP_sha512(),KDF_KEY,HM_LEN,entropy,entLen,
+				tempKey,NULL);
 	}
 	else
 	{
-		randBytes(//,entLen);
+		/* Random key of KLEN_SKE length
+		 *
+		 * Output goes in tempKey
+		 */ 
+		randBytes(tempKey,i);
 	}
+
+	// Copy values into the associated Keys in the object K
+	memcpy(K->hmacKey, tempKey//lower tempkey, KLEN_SKE);
+       	memcpy(K->aesKey, tempKey//upper tempkey, KLEN_SKE);	
 	return 0;
 }
 size_t ske_getOutputLen(size_t inputLen)
