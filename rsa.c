@@ -57,25 +57,32 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
-	unsigned char* p;// define space for prime p
-	unsigned char* q;// define space for prime q
-	p = malloc(keyBits/8);
-	q = malloc(keyBits/8);
+	unsigned char* p; // define space for prime p
+	unsigned char* q; // define space for prime q
+	p = malloc(keyBits/8); //memory allocation
+	q = malloc(keyBits/8); //memory allocation
 	randBytes(p,keyBits/8);// generate random bytes
 	randBytes(q,keyBits/8);// generate random bytes
 	NEWZ(P);// define gmp variable
 	BYTES2Z(P,p,keyBits/8); //asigned the randombyte to interger into P
     	NEWZ(nextP); 
-    	mpz_nextprime(nextP,P);  //setting prime on nextP
-	mpz_set(K->p,nextP);    //sets P into the initKey
+    	mpz_nextprime(nextP,P);  //finding a prime for nextP
+	if(ISPRIME(nextP)==1)
+	{
+		mpz_set(K->p,nextP);    //sets P into the initKey
+	}
+
 	NEWZ(Q);
 	BYTES2Z(Q,q,keyBits/8); //asigned the randombyte to interger into Q
 	NEWZ(nextQ);
-	mpz_nextprime(nextQ,Q);  //setting prime on nextQ
-	mpz_set(K->q,nextQ);     //sets Q into the initKey
+	mpz_nextprime(nextQ,Q);  //finding a prime for nextQ
+	if(ISPRIME(nextP)==1)
+	{
+		mpz_set(K->q,nextQ);     //sets Q into the initKey
+	}
 
 	NEWZ(N);
-	mpz_mul(N,P,Q);          //computes N.
+	mpz_mul(N,K->p,K->q);          //computes N.
 	mpz_set(K->n,N);         //sets N to the initKey
 	NEWZ(phi);
 	NEWZ(p1);
@@ -87,14 +94,15 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	NEWZ(temp);
 	NEWZ(hold);
 	mpz_set_ui(temp,3);
-	bool a = true;
-	while(a)
+	//check THIS LOOP
+	//bool a = true;
+	while(1)
 	{
 		mpz_gcd(K->e,temp,phi);  //temp and phi needs to be const mpz_t type.
 		if(mpz_cmp_ui(K->e,1)== 1) //mpz comp
 		{
 			mpz_set(K->e,temp);
-			a = false;
+			break;
 		}
 		else
 		{
@@ -102,6 +110,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 			mpz_add_ui(temp,hold,2);
 		}
 	}
+	//D might be wrong
 	NEWZ(D1); //holds D1*2
 	NEWZ(D2); //holds D1+1
 	mpz_mul_ui(D1,phi,2); //multiplies phi*2
@@ -111,7 +120,6 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 //clearing memories
 	mpz_clear(P);
 	mpz_clear(nextP);
-	mpz_clear(nextQ);
 	mpz_clear(Q);
 	mpz_clear(nextQ);
 	mpz_clear(N);
@@ -120,7 +128,8 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_clear(D1);
 	mpz_clear(D2);
 	mpz_clear(hold);
-
+	mpz_clear(p1);
+	mpz_clear(q1);
 	return 0;
 }
 
@@ -148,10 +157,10 @@ size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	NEWZ(pt);
 		
 	BYTES2Z(ct,inBuf,len);
-	mpz_powm(outBuffer,inBuffer,K->d,K->n); // mg = c^d mod n
+	mpz_powm(pt,ct,K->d,K->n); // mg = c^d mod n
 	Z2BYTES(outBuf,len,pt);	
 
-	mpz_clear(ct); mpz_clear(pt); mpz_clear(outBuffer); mpz_clear(inBuffer);
+	mpz_clear(ct); mpz_clear(pt); 
 
 	return len;
 }
