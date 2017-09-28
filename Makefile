@@ -16,7 +16,7 @@ ifeq ($(shell uname),Linux)
 DEFS += -DLINUX
 endif
 
-IMPL := ske.o rsa.o kem-enc.o
+IMPL :=ske.o  rsa.o kem-enc.o
 ifdef skel
 IMPL := $(IMPL:.o=-skel.o)
 endif
