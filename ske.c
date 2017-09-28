@@ -64,13 +64,14 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * for a hint.  Also, be sure to setup a random IV if none was given.
 	 * You can assume outBuf has enough space for the result. */
 	//outBuf is the CT, inBuf is the message,
+	const unsigned char *ctAES = K->aesKey;
 	if(IV == 0)//non IV was given
 	randBytes(IV,len);//we generate random IV of size len
 	
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
-	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K,IV);//sets up for encryption
+	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,ctAES,IV);//sets up for encryption
 	int num;
-	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len)//does the encryption
+	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len);//does the encryption
 	EVP_CIPHER_CTX_free(ctx);//free up space
 	return num;//returns number of btyes written
 		 /* TODO: should return number of bytes written, which
