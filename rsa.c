@@ -61,13 +61,13 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	unsigned char q[32];// define space for prime q
 	randBytes(p,keyBits/8);// generate random bytes
 	randBytes(q,keyBits/8);// generate random bytes
-	const char* const firstPrime = p; // put p inside char
+	const char* firstPrime = p; // put p inside char
     	NEWZ(P);// define gmp variable
     	mpz_set_str(P,firstPrime,10);// set our random bytes to a string
     	NEWZ(nextP);
     	mpz_nextprime(nextP,P);  //setting prime on nextP
 	mpz_set(K->p,nextP);    //sets P into the initKey
-	const char* const secPrime = q;
+	const char* secPrime = q;
 	NEWZ(Q);
 	mpz_set_str(Q,secPrime,10);
 	NEWZ(nextQ);
@@ -78,7 +78,11 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_mul(N,P,Q);          //computes N.
 	mpz_set(K->n,N);         //sets N to the initKey
 	NEWZ(phi);
-	mpz_mul(phi,P-1,Q-1);
+	NEWZ(p1);
+	NEWZ(q1);
+	mpz_sub_ui(p1,P,1);
+	mpz_sub_ui(q1,Q,1);
+	mpz_mul(phi,p1,q1);
 	
 	NEWZ(temp);
 	NEWZ(hold);
