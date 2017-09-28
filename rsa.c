@@ -84,39 +84,37 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	NEWZ(N);
 	mpz_mul(N,K->p,K->q);          //computes N.
 	mpz_set(K->n,N);         //sets N to the initKey
-	NEWZ(phi);
-	NEWZ(p1);
-	NEWZ(q1);
+	NEWZ(phi); NEWZ(p1); NEWZ(q1); //creating variables for phi 
 	mpz_sub_ui(p1,K->p,1);
 	mpz_sub_ui(q1,K->q,1);
 	mpz_mul(phi,p1,q1);
 	
 	NEWZ(temp);
-	NEWZ(hold);
 	mpz_set_ui(temp,3);
 	//check THIS LOOP
 	//bool a = true;
 	while(1)
 	{
 		mpz_gcd(K->e,temp,phi);  //temp and phi needs to be const mpz_t type.
-		if(mpz_cmp_ui(K->e,1)== 1) //mpz comp
+		if(mpz_cmp_ui(K->e,1)== 0) //mpz comp
 		{
 			mpz_set(K->e,temp);
 			break;
 		}
 		else
 		{
-			mpz_set(hold,temp);
-			mpz_add_ui(temp,hold,2);
+			mpz_add_ui(temp,temp,2);
 		}
 	}
-	//D might be wrong
-	NEWZ(D1); //holds D1*2
-	NEWZ(D2); //holds D1+1
-	mpz_mul_ui(D1,phi,2); //multiplies phi*2
-	mpz_add_ui(D2,D1,1);  //adds (phi*2)+1
-	mpz_cdiv_q(K->d,D2,K->e);  //divides ((phi*2)+1)
+	NEWZ(g); NEWZ(d); NEWZ(t);
+	mpz_gcdext(g, d, t, temp, phi);
+		
+	mpz_add(d, d, phi);
+	
+	mpz_set(K->d, d); 
 
+
+	
 //clearing memories
 	mpz_clear(P);
 	mpz_clear(nextP);
@@ -125,11 +123,11 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_clear(N);
 	mpz_clear(phi);
 	mpz_clear(temp);
-	mpz_clear(D1);
-	mpz_clear(D2);
-	mpz_clear(hold);
 	mpz_clear(p1);
 	mpz_clear(q1);
+	mpz_clear(g);
+	mpz_clear(d);
+	mpz_clear(t);
 	return 0;
 }
 
