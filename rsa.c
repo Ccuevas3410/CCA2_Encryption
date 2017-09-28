@@ -7,7 +7,7 @@
 #include "prf.h"
 /* NOTE: a random composite surviving 10 Miller-Rabin tests is extremely
  * unlikely.  See Pomerance et al.:
- * http://www.ams.org/mcom/1993-61-203/S0025-5718-1993-1189518-9/
+ * http://www.amps.org/mcom/1993-61-203/S0025-5718-1993-1189518-9/
  * */
 #define ISPRIME(x) mpz_probab_prime_p(x,10)
 #define NEWZ(x) mpz_t x; mpz_init(x)
@@ -57,19 +57,19 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	 * the right length, and then test for primality (see the ISPRIME
 	 * macro above).  Once you've found the primes, set up the other
 	 * pieces of the key ({en,de}crypting exponents, and n=pq). */
-	unsigned char p[32];// define space for prime p
-	unsigned char q[32];// define space for prime q
+	unsigned char* p;// define space for prime p
+	unsigned char* q;// define space for prime q
+	p = malloc(keyBits/8);
+	q = malloc(keyBits/8);
 	randBytes(p,keyBits/8);// generate random bytes
 	randBytes(q,keyBits/8);// generate random bytes
-	const char* firstPrime = p; // put p inside char
-    	NEWZ(P);// define gmp variable
-    	mpz_set_str(P,firstPrime,10);// set our random bytes to a string
-    	NEWZ(nextP);
+	NEWZ(P);// define gmp variable
+	BYTES2Z(P,p,keyBits/8); //asigned the randombyte to interger into P
+    	NEWZ(nextP); 
     	mpz_nextprime(nextP,P);  //setting prime on nextP
 	mpz_set(K->p,nextP);    //sets P into the initKey
-	const char* secPrime = q;
 	NEWZ(Q);
-	mpz_set_str(Q,secPrime,10);
+	BYTES2Z(Q,q,keyBits/8); //asigned the randombyte to interger into Q
 	NEWZ(nextQ);
 	mpz_nextprime(nextQ,Q);  //setting prime on nextQ
 	mpz_set(K->q,nextQ);     //sets Q into the initKey
@@ -80,8 +80,8 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	NEWZ(phi);
 	NEWZ(p1);
 	NEWZ(q1);
-	mpz_sub_ui(p1,P,1);
-	mpz_sub_ui(q1,Q,1);
+	mpz_sub_ui(p1,K->p,1);
+	mpz_sub_ui(q1,K->q,1);
 	mpz_mul(phi,p1,q1);
 	
 	NEWZ(temp);
