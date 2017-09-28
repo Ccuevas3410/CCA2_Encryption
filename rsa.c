@@ -94,7 +94,8 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 		}
 		else
 		{
-		    mpz_add_ui(temp,hold,2);
+			mpz_set(hold,temp);
+			mpz_add_ui(temp,hold,2);
 		}
 	}
 	NEWZ(D1); //holds D1*2
