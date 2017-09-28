@@ -44,35 +44,35 @@ int cbc_example()
 
 int ctr_example()
 {
-	unsigned char key[32];
+	unsigned char key[32];//will hold our key
 	size_t i;
-	for (i = 0; i < 32; i++) key[i] = i;
-	unsigned char iv[16];
-	for (i = 0; i < 16; i++) iv[i] = i;
-	unsigned char ct[512];
-	unsigned char pt[512];
+	for (i = 0; i < 32; i++) key[i] = i;//giving stupid values to key
+	unsigned char iv[16];//will hold our IV
+	for (i = 0; i < 16; i++) iv[i] = i;//giving stupid values to IV
+	unsigned char ct[512];//will hold the cipher text in bits
+	unsigned char pt[512];//will hold the plain text in bits
 	/* so you can see which bytes were written: */
-	memset(ct,0,512);
-	memset(pt,0,512);
-	char* message = "this is a test message :D";
-	size_t len = strlen(message);
+	memset(ct,0,512);//setting all values to 0
+	memset(pt,0,512);//^^
+	char* message = "this is a test message :D";// the plain text
+	size_t len = strlen(message);//hold the len of the text
 	/* encrypt: */
-	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-	if (1!=EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,key,iv))
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//will hold the cipher text context
+	if (1!=EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,key,iv))//cipher text ready for encyption
 		ERR_print_errors_fp(stderr);
-	int nWritten;
-	if (1!=EVP_EncryptUpdate(ctx,ct,&nWritten,(unsigned char*)message,len))
+	int nWritten;// an int value
+	if (1!=EVP_EncryptUpdate(ctx,ct,&nWritten,(unsigned char*)message,len))//
 		ERR_print_errors_fp(stderr);
 	EVP_CIPHER_CTX_free(ctx);
-	size_t ctLen = nWritten;
+	size_t ctLen = nWritten;//ctlen will be the cipher text lenth
 	for (i = 0; i < ctLen; i++) {
-		fprintf(stderr, "%02x",ct[i]);
+		fprintf(stderr, "%02x",ct[i]);//loop to output ct
 	}
 	fprintf(stderr, "\n");
 	/* now decrypt.  NOTE: in counter mode, encryption and decryption are
 	 * actually identical, so doing the above again would work. */
 	nWritten = 0;
-	ctx = EVP_CIPHER_CTX_new();
+	ctx = EVP_CIPHER_CTX_new();//refreshes ctx
 	if (1!=EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,key,iv))
 		ERR_print_errors_fp(stderr);
 	if (1!=EVP_DecryptUpdate(ctx,pt,&nWritten,ct,ctLen))
@@ -83,6 +83,6 @@ int ctr_example()
 
 int main()
 {
-    return ctr_example();
-   // return cbc_example();
+   // return ctr_example();
+    return cbc_example();
 }
