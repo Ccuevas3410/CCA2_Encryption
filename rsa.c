@@ -119,6 +119,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_clear(temp);
 	mpz_clear(D1);
 	mpz_clear(D2);
+	mpz_clear(hold);
 
 	return 0;
 }
@@ -145,10 +146,6 @@ size_t rsa_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	/* TODO: write this.  See remarks above. */
 	NEWZ(ct);
 	NEWZ(pt);
-	NEWZ(outBuffer);
-	mpz_set_str(outBuffer,outBuf,10);
-	NEWZ(inBuffer);
-	mpz_set_str(inBuffer,inBuf,10);
 		
 	BYTES2Z(ct,inBuf,len);
 	mpz_powm(outBuffer,inBuffer,K->d,K->n); // mg = c^d mod n
