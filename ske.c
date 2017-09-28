@@ -40,8 +40,8 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	// If entropy is given applly KDF - HMACSHA512 elseif is null randBytes for random key
 	/*if(entropy)
 	{
-		HMAC(EVP_sha512(),*key,key_len,unsigned char*d,int n,
-				unsinged char *md, unsigned int*md_len);
+	//	HMAC(EVP_sha512(),*key,key_len,unsigned char*d,int n,
+	//			unsinged char *md, unsigned int*md_len);
 
 		//from
 		//rkey,BLOCK_LEN,(unsigned char*)mpz_limbs_read(rcount),
@@ -49,7 +49,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	}
 	else
 	{
-		randBytes(//,entLen);
+	//	randBytes(//,entLen);
 	}
 	return 0;*/
 }
