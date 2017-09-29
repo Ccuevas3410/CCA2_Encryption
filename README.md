@@ -1,28 +1,25 @@
 # csc480 project1 README
 
-## git stuff
-
-1. Check branch
-	- `git status`
-2. Change to own branch
-	- `git checkout <user branch>`
-
-## From own branch
-1. Stage the file
+## To Push Changes
+1. Push the changes to own branch
 	- `git add <file>`
-2. Commit the changes
 	- `git commit -a -m <message>`
-3. Push the changes
 	- `git push`
-4. Change to master branch
+2. Merge and push from master branch to master remote
 	- `git checkout master`
-
-## From Master Branch
-1. Commit into master branch
-	- `git commit -a -m <message>`
-2. Merge into master branch
 	- `git merge <user branch>`
+	- `git push`
 
-## To Pull
-1. Make sure you're in master branch
-2. `git pull`
+## To Fetch Changes
+1. Make sure local branch is updated
+	- `git add <files>`
+	- `git commit -a -m "message"`
+	- `git push`
+2. Pull from Master branch
+	- `git checkout master`
+	- `git pull`
+3. Merge with Master from own branch and push
+	- `git checkout <user branch>`
+	- `git merge master`
+	- `git push`
+
