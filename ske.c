@@ -154,6 +154,7 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	unsigned char IV[16];
 	for (i=0;i<16;i++) IV[i] = inBuf[i];
 
+	// Decryption
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new(); // cyphertext context
 	EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV); // Initialize decryption
 	int num; 
