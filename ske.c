@@ -82,10 +82,12 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
        	memcpy(K->aesKey, tempKey+KLEN_SKE, KLEN_SKE);	// upper tempKey
 	return 0;
 }
+
 size_t ske_getOutputLen(size_t inputLen)
 {
 	return AES_BLOCK_SIZE + inputLen + HM_LEN;
 }
+
 size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		SKE_KEY* K, unsigned char* IV)
 {
@@ -115,12 +117,14 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 }
+
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
 	/* TODO: write this.  Hint: mmap. */
 	return 0;
 }
+
 size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 		SKE_KEY* K)
 {
@@ -129,12 +133,34 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * Otherwise, return the number of bytes written.  See aes-example.c
 	 * for how to do basic decryption. */
 
-	if() { 
+	/* Arguments
+	 * outBuf = plaintext
+	 * inBuf = cyphertext
+	 * len = length of cyphertext
+	 * K = key */
 
+	// generate hash using cyphertext
+	size_t KLEN_2X = KLEN_SKE*2;
+	unsigned char tempHash[KLEN_2X];
+	HMAC(EVP_sha512(),KDF_KEY,HM_LEN,inBuf,len,tempHash,NULL);
+
+	// check hash
+	size_t i;
+	for (i=0;i<KLEN_2X;i++) {
+		if(tempHash[i] != K->hmacKey[i]) return -1;
 	}
-	else { return -1; }
 
-	return 0;
+	// Assign IV
+	unsigned char IV[16];
+	for (i=0;i<16;i++) IV[i] = inBuf[i];
+
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new(); // cyphertext context
+	EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV); // Initialize decryption
+	int num; 
+	EVP_DecryptUpdate(ctx,outBuf,&num,inBuf,len); // Decryption. outBuf holds plaintext
+	EVP_CIPHER_CTX_free(ctx);
+
+	return num; // number of bytes written
 }
 size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
