@@ -57,7 +57,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	unsigned char tempKey[KLEN_2X];
 
 	// If entropy is given apply KDF - HMACSHA512 elseif is null randBytes for random key
-	if(entropy)
+	if(entropy != NULL)
 	{
 		/* Computes the MAC of the entLen bytes at entropy using hash
 		 * function EVP_sha512 and the key, KDF_KEY which is HM_LEN 
@@ -66,7 +66,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 		 * Output goes in tempKey and size in NULL
 		 */
 		HMAC(EVP_sha512(),KDF_KEY,HM_LEN,entropy,entLen,
-				tempKey,NULL);
+				tempKey,NULL); 
 	}
 	else
 	{
@@ -94,15 +94,19 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * You can assume outBuf has enough space for the result. */
 	//outBuf is the CT, inBuf is the message,
 	const unsigned char *Aes = K->aesKey;
-	if(IV == 0)//non IV was given
+	if(IV == NULL)//non IV was given
 	randBytes(IV,len);//we generate random IV of size len
 	
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
-	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,Aes,IV);//sets up for encryption
+	if(1 != EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,Aes,IV))
+		ERR_print_errors_fp(stderr);//sets up for encryption
 	int num;
-	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len);//does the encryption
+	if(1 != EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len))//does the encryption
+		ERR_print_errors_fp(stderr);
 	EVP_CIPHER_CTX_free(ctx);//free up space
 	return num;//returns number of btyes written
+
+	//more stuff missing
 		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 }
