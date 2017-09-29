@@ -123,7 +123,36 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * Oh, and also, return -1 if the ciphertext is found invalid.
 	 * Otherwise, return the number of bytes written.  See aes-example.c
 	 * for how to do basic decryption. */
-	return 0;
+
+	/* Arguments
+	 * outBuf = plaintext
+	 * inBuf = cyphertext
+	 * len = length of cyphertext
+	 * K = key */
+
+	// generate hash using cyphertext
+	size_t KLEN_2X = KLEN_SKE*2;
+	unsigned char tempHash[KLEN_2X];
+	HMAC(EVP_sha512(),KDF_KEY,HM_LEN,inBuf,len,tempHash,NULL);
+
+	// check hash
+	size_t i;
+	for (i=0;i<KLEN_2X;i++) {
+		if(tempHash[i] != K->hmacKey[i]) return -1;
+	}
+
+	// Assign IV
+	unsigned char IV[16];
+	for (i=0;i<16;i++) IV[i] = inBuf[i];
+
+	// Decryption
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new(); // cyphertext context
+	EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV); // Initialize decryption
+	int num; 
+	EVP_DecryptUpdate(ctx,outBuf,&num,inBuf,len); // Decryption. outBuf holds plaintext
+	EVP_CIPHER_CTX_free(ctx);
+
+	return num; // number of bytes written
 }
 size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
