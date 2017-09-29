@@ -9,6 +9,8 @@
 	- `git checkout master`
 	- `git merge <user branch>`
 	- `git push`
+3. Go back to own branch
+	- `git checkout <user branch>`
 
 ## To Fetch Changes
 1. Make sure local branch is updated
