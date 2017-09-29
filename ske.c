@@ -54,7 +54,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 	// Variable for temporary key storage of length KLEN_SKE
 	// Note KLEN_SKE is 32
 	size_t KLEN_2X = KLEN_SKE*2;
-	unsigned char tempKey[KLEN_2X];
+	unsigned char tempKey[KLEN_2X];//size 64
 
 	// If entropy is given apply KDF - HMACSHA512 elseif is null randBytes for random key
 	if(entropy)
@@ -93,14 +93,23 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * for a hint.  Also, be sure to setup a random IV if none was given.
 	 * You can assume outBuf has enough space for the result. */
 	//outBuf is the CT, inBuf is the message,
-	const unsigned char *Aes = K->aesKey;
+	//const unsigned char *Aes = K->aesKey;
 	if(IV == 0)//non IV was given
-	randBytes(IV,len);//we generate random IV of size len
+	randBytes(IV,16);//we generate random IV of size 16
 	
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
-	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,Aes,IV);//sets up for encryption
+	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV);//sets up for encryption
 	int num;
-	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len);//does the encryption
+	EVP_EncryptUpdate(ctx,outBuf,&num,inBuf,len);//does the encryption, now outBuf holds the aesCT
+	unsigned char *tempaesCT = outBuf;//assigns the aesCT to tempaesCT
+	//now we use hmac on the ct
+	unsigned char temphmacKey[HM_LEN];//will hold the hmac of the CT
+	//    hash func,     hmac K,   32, , CT   ,32 , holds hmac of CT
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,outBuf,len,temphmacKey,NULL);
+	// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT
+	memcpy(outBuf, IV, 16);//IV has size 16
+	memcpy(outBuf+16, tempaesCT, len);//size of len
+	memcpy(outBuf+16+len,temphmacKey,HM_LEN);
 	EVP_CIPHER_CTX_free(ctx);//free up space
 	return num;//returns number of btyes written
 		 /* TODO: should return number of bytes written, which
