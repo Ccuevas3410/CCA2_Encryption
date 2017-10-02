@@ -163,9 +163,101 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	return num; // number of bytes written
 }
+
+/* For decrypting contents of a file
+ *
+ * precondition:
+ * fnout = file name of the file with the decrypted ct
+ * fnin = file name of the file to be decrypted
+ * K = the object containg the HMAC and AES key
+ * offset_in = offset of file in 
+ *
+ * postcondition:
+ * creates a new file with the decryption
+ * returns number of bytes written
+ */
 size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
 {
 	/* TODO: write this. */
-	return 0;
+	
+	// Variables
+	int fdIn, fdOut;	// File Descriptor 
+	struct stat st; 	// File Stats
+	size_t fileSize, num	// File Size & Bytes written
+	unsigned char* mappedFiled;	// for memory map (mmap)
+
+
+	// Open Encrypted File with Read Only Capability
+	fdIn = open(fnin,O_RDONLY);
+	// Error Check
+	if (fdIn < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Get File Size
+	stat(fnin, &st);
+	fileSize = st.st_size-offset_in;
+
+	// Memory map the file with mmap
+	/* Description of pa=mmap(addr, len, prot, flags, fildes, off);
+	 *
+	 * establishes a mapping b/w the address space of the process
+	 * at the addres 'pa' for 'len' bytes to the memory obj
+	 * represented by the file descriptor 'fildes' at the
+	 * offset 'off' for 'len' bytes. 
+	 *
+	 * returns the address at which the mapping was placed
+	 *
+	 * addr == NULL,  kernel decides which address to mmap at
+	 * len == fileSize of the file
+	 * prot == R page protection
+	 * flags == determined by professor
+	 * fildes = fdIn, the fd to map
+	 * off = offset from beginning of file
+	 */
+	 mappedFile = mmap(NULL, fileSize, 
+	 		PROT_READ,MMAP_SEQ, fdIn, offset_in);
+	// Error Check
+	 if (mappedFile == MAP_FAILED){
+	 	perror("Error:");
+	 	return 1;
+	 }
+
+ 	// Create a temporary buffer to hold decrypted text
+	unsigned char tempBuf[fileSize]; 	
+
+	// Call ske_decrypt
+	num = ske_decrypt(tempBuf,mappedFile,fileSize,K);
+	
+	// Create Output File with R,W,& Execute Capability
+	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
+	// Error Check
+	if (fdOut < 0){
+		perror("Error:");
+		return 1;
+	}
+	
+	//**** DOUBLE CHECK THAT WRITE TO TEMPBUF IS OKAY
+	//CHECK THE NUM = SIZE OF BYTES
+	//OR SHOULD I MANULLY CHECK
+	//DO I HAVE TO USE SKE_OUTPUTSIZE
+	//WHAT ABOUT HMLEN OR AESBLOCK SIZE IN THAT FUNCTION?
+	
+	// Write tempBuf to file
+	int wc = write(fdOut,tempBuf,num);
+	// Error Check
+	if ( wc < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Close Files & Delete Mappings 
+	close(fdIn);
+	close(fdOut);
+	munmap(mappedFile, filesize)
+	
+	// Return number of bytes written
+	return num;
 }
