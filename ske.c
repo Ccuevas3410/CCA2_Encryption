@@ -121,8 +121,65 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
-	/* TODO: write this.  Hint: mmap. */
-	return 0;
+	/* DONE: write this.  Hint: mmap. */
+
+	// Variables
+	int fdIn, fdOut;	// File Descriptor
+	struct stat st;		// File Stats
+	size_t fileSize, num;	// File Size & Bytes Written
+	unsigned char* mappedFile;	// for mmap
+
+	// Open Message File with Read Only Capability
+	fdIn = open(fnin,O_RDONLY);
+	// Error Check
+	if (fdIn < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Get File Size 
+	stat(fnin, &st);
+	fileSize = st.st_size; //-offset_out;
+
+	// Mmap - see ske_decrypt_file() for more info
+	mappedFile = mmap(NULL, fileSize,
+			PROT_READ,MMAP_SEQ, fdIn, offset_out);
+	// Error Check
+	if (mappedFile == MAP_FAILED){
+		perror("Error:");
+		return 1;
+	}
+
+	// Create a temporary buffer to hold encrypted text
+	unsigned char tempBuf[fileSize];
+
+	// Call ske_encrypt
+	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,NULL);
+	//**SHOULD I CHANGE IN ENCRYPT FUNCTION IV TO NULL?
+	
+	// Create Output File with RWX Capability
+	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
+	// Error Check
+	if (fdOut < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Write tempBuf to file
+	int wc = write(fdOut,tempBuf,num);
+	// Error check
+	if (wc < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Close Files & Delete Mappings
+	close(fdIn);
+	close(fdOut);
+	munmap(mappedFile, fileSize);
+
+	// Return number of bytes written
+	return num;
 }
 
 size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
@@ -184,8 +241,8 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	// Variables
 	int fdIn, fdOut;	// File Descriptor 
 	struct stat st; 	// File Stats
-	size_t fileSize, num	// File Size & Bytes written
-	unsigned char* mappedFiled;	// for memory map (mmap)
+	size_t fileSize, num;	// File Size & Bytes written
+	unsigned char* mappedFile;	// for memory map (mmap)
 
 
 	// Open Encrypted File with Read Only Capability
@@ -256,7 +313,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	// Close Files & Delete Mappings 
 	close(fdIn);
 	close(fdOut);
-	munmap(mappedFile, filesize)
+	munmap(mappedFile, fileSize);
 	
 	// Return number of bytes written
 	return num;
