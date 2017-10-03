@@ -96,35 +96,6 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * You can assume outBuf has enough space for the result. */
 	//outBuf is the CT, inBuf is the message,
 	//const unsigned char *Aes = K->aesKey;
-<<<<<<< HEAD
-	/*if(IV == NULL)//non IV was given*/
-		/*for(int i=0; i<16; i++) IV[i]=i;*/
-	/*memcpy(outBuf,IV,16);*/
-	/*[>randBytes(IV,2);//we generate random IV of size 16<]*/
-	
-	/*EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT*/
-	/*if(1 != EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV))*/
-		/*ERR_print_errors_fp(stderr);//sets up for encryption*/
-
-	/*int num;*/
-	/*if(1 != EVP_EncryptUpdate(ctx,outBuf+16,&num,inBuf,len))*/
-		/*ERR_print_errors_fp(stderr);//does the encryption, now outBuf holds the aesCT*/
-
-	/*EVP_CIPHER_CTX_free(ctx);*/
-	
-	/*int total = 16 + 32 + num; */
-
-	/*unsigned char tempaesCT[num];//assigns the aesCT to tempaesCT*/
-	/*memcpy(tempaesCT, outBuf+16,num);//size of len*/
-	/*//now we use hmac on the ct*/
-	/*unsigned char* temphmacKey= malloc(HM_LEN);//will hold the hmac of the CT*/
-	/*//    hash func,     hmac K,   32, , CT   ,32 , holds hmac of CT*/
-	/*HMAC(EVP_sha256(),K->hmacKey,HM_LEN,outBuf,num+16,temphmacKey,NULL);*/
-	/*memcpy(outBuf + 16+ num,temphmacKey,32);*/
-	/*// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT*/
-	
-	/*return total;//returns number of btyes written*/
-=======
 	if(!IV)//non IV was given
 	randBytes(IV,16);//we generate random IV of size 16
 
@@ -150,78 +121,14 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	memcpy(outBuf+16+num,temphmacKey,HM_LEN);
 	EVP_CIPHER_CTX_free(ctx);//free up space
 	return num;//returns number of btyes written
->>>>>>> master
 		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
-if (IV == NULL)
-                for (int i = 0; i < 16; i++) IV[i] = i;
-
-        memcpy(outBuf, IV, 16);
-
-
-        EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-        if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), 0, K->aesKey, IV))
-                ERR_print_errors_fp(stderr);
-
-        int nWritten;
-        if (1 != EVP_EncryptUpdate(ctx, outBuf + 16, &nWritten, inBuf, len))
-                ERR_print_errors_fp(stderr);
-
-        EVP_CIPHER_CTX_free(ctx);
-
-        int total = 16 + 32 + nWritten;
-
-
-        unsigned char myBuf[nWritten];
-        memcpy(myBuf, outBuf+16, nWritten);
-
-
-        unsigned char* _HMAC = malloc(HM_LEN);
-        HMAC(EVP_sha256(), K->hmacKey, HM_LEN, outBuf, nWritten+16, _HMAC, NULL);
-        memcpy(outBuf + 16 + nWritten, _HMAC, 32);
-
-
-        return total;
 }
 
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
-<<<<<<< HEAD
 	/* TODO: write this.  Hint: mmap. */
-	if(IV==NULL)
-	for(int i=0; i<16; i++) IV[i]=i;
- int fd = open(fnin, O_RDONLY);
-    if (fd == -1) return -1;
-
-    struct stat sb;
-    if (fstat(fd, &sb) == -1) return -1;
-
-    if (sb.st_size == 0) return -1;
-
-    char *src;
-    src = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (src == MAP_FAILED)
-        return -1;
-
-    // for (int i = 0; i < sb.st_size; i++)
-    //  printf("%c", src[i]);
-
-    // printf("\n");
-
-    size_t len = strlen(src) + 1;
-    size_t ctLen = ske_getOutputLen(len);
-    unsigned char *ct = malloc(ctLen+1);
-    size_t total = ske_encrypt(ct, (unsigned char*)src, len, K, IV);
-
-    // printf("total - %zu\n", total);
-
-    int dd = open(fnout, O_CREAT | O_RDWR, S_IRWXU);
-
-    write(dd, ct, (int)total);
-
-        return 0;
-=======
 	/* DONE: write this.  Hint: mmap. */
 
 	// Variables
@@ -281,7 +188,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 
 	// Return number of bytes written
 	return num;
->>>>>>> master
 }
 
 size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
