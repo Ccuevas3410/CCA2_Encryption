@@ -96,6 +96,7 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * You can assume outBuf has enough space for the result. */
 	//outBuf is the CT, inBuf is the message,
 	//const unsigned char *Aes = K->aesKey;
+<<<<<<< HEAD
 	/*if(IV == NULL)//non IV was given*/
 		/*for(int i=0; i<16; i++) IV[i]=i;*/
 	/*memcpy(outBuf,IV,16);*/
@@ -123,6 +124,33 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	/*// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT*/
 	
 	/*return total;//returns number of btyes written*/
+=======
+	if(!IV)//non IV was given
+	randBytes(IV,16);//we generate random IV of size 16
+
+	// Encrypt	
+	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
+	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV);//sets up for encryption
+	int num;
+	unsigned char ctBuf[len]; // to hold CT
+	unsigned char ivCtBuf[AES_BLOCK_SIZE+len]; // for combined iv and ct
+	memcpy(ivCtBuf,IV,AES_BLOCK_SIZE);
+
+	EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len);//does the encryption, now outBuf holds the aesCT
+	//now we use hmac on the ct
+	
+	memcpy(ivCtBuf+AES_BLOCK_SIZE,ctBuf,num);
+	unsigned char temphmacKey[HM_LEN];//will hold the hmac of the CT
+	//    hash func,     hmac K,   32, , CT   ,32 , holds hmac of CT
+	//    why include ctBuf as ctbuf and IV
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,len,temphmacKey,NULL);
+	// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT
+	memcpy(outBuf, IV, 16);//IV has size 16
+	memcpy(outBuf+16, ctBuf, num);//size of len
+	memcpy(outBuf+16+num,temphmacKey,HM_LEN);
+	EVP_CIPHER_CTX_free(ctx);//free up space
+	return num;//returns number of btyes written
+>>>>>>> master
 		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 if (IV == NULL)
@@ -159,6 +187,7 @@ if (IV == NULL)
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
+<<<<<<< HEAD
 	/* TODO: write this.  Hint: mmap. */
 	if(IV==NULL)
 	for(int i=0; i<16; i++) IV[i]=i;
@@ -192,6 +221,67 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
     write(dd, ct, (int)total);
 
         return 0;
+=======
+	/* DONE: write this.  Hint: mmap. */
+
+	// Variables
+	int fdIn, fdOut;	// File Descriptor
+	struct stat st;		// File Stats
+	size_t fileSize, num;	// File Size & Bytes Written
+	unsigned char* mappedFile;	// for mmap
+
+	// Open Message File with Read Only Capability
+	fdIn = open(fnin,O_RDONLY);
+	// Error Check
+	if (fdIn < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Get File Size 
+	stat(fnin, &st);
+	fileSize = st.st_size; //-offset_out;
+
+	// Mmap - see ske_decrypt_file() for more info
+	mappedFile = mmap(NULL, fileSize,
+			PROT_READ,MMAP_SEQ, fdIn, offset_out);
+	// Error Check
+	if (mappedFile == MAP_FAILED){
+		perror("Error:");
+		return 1;
+	}
+
+	// Create a temporary buffer to hold encrypted text
+	unsigned char tempBuf[fileSize];
+
+	// Call ske_encrypt
+	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,NULL);
+	//**SHOULD I CHANGE IN ENCRYPT FUNCTION IV TO NULL?
+	
+	// Create Output File with RWX Capability
+	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
+	// Error Check
+	if (fdOut < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Write tempBuf to file
+	int wc = write(fdOut,tempBuf,num);
+	// Error check
+	if (wc < 0){
+		perror("Error:");
+		return 1;
+	}
+
+	// Close Files & Delete Mappings
+	close(fdIn);
+	close(fdOut);
+	munmap(mappedFile, fileSize);
+
+	// Return number of bytes written
+	return num;
+>>>>>>> master
 }
 
 size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
@@ -207,29 +297,36 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	 * inBuf = cyphertext
 	 * len = length of cyphertext
 	 * K = key */
+	// Split inBuf to IV, CT, HMAC buffers
+	unsigned char 	ivBuf[AES_BLOCK_SIZE],
+			ctBuf[len-AES_BLOCK_SIZE-HM_LEN],
+			hmacBuf[HM_LEN];
+	
+	size_t ctSize = len-AES_BLOCK_SIZE-HM_LEN;
 
-	// generate hash using cyphertext
-	size_t KLEN_2X = KLEN_SKE*2;
-	unsigned char tempHash[KLEN_2X];
-	HMAC(EVP_sha512(),KDF_KEY,HM_LEN,inBuf,len,tempHash,NULL);
+	memcpy(ivBuf,inBuf,AES_BLOCK_SIZE);
+	memcpy(ctBuf,inBuf+AES_BLOCK_SIZE,ctSize);
+	memcpy(hmacBuf,inBuf+len-HM_LEN,HM_LEN);
 
+	// generate hash using cyphertext to ensure integrity of CT
+	unsigned char tempHash[HM_LEN]; // to hold return of HMAC
+
+	unsigned char ivCtBuf[len-HM_LEN];
+	memcpy(ivCtBuf,inBuf,len-HM_LEN);
+
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,ctSize,tempHash,NULL);
 	// check hash
 	size_t i;
-	for (i=0;i<KLEN_2X;i++) {
-		if(tempHash[i] != K->hmacKey[i]) return -1;
+	for (i=0;i<32;i++) {
+		if(tempHash[i] != hmacBuf[i]) return -1;
 	}
-
-	// Assign IV
-	unsigned char IV[16];
-	for (i=0;i<16;i++) IV[i] = inBuf[i];
-
+	
 	// Decryption
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new(); // cyphertext context
-	EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV); // Initialize decryption
+	EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,ivBuf); // Initialize decryption
 	int num; 
-	EVP_DecryptUpdate(ctx,outBuf,&num,inBuf,len); // Decryption. outBuf holds plaintext
+	EVP_DecryptUpdate(ctx,outBuf,&num,ctBuf,ctSize); // Decryption. outBuf holds plaintext
 	EVP_CIPHER_CTX_free(ctx);
-
 	return num; // number of bytes written
 }
 
@@ -254,7 +351,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	int fdIn, fdOut;	// File Descriptor 
 	struct stat st; 	// File Stats
 	size_t fileSize, num;	// File Size & Bytes written
-	unsigned char* mappedFiled;	// for memory map (mmap)
+	unsigned char* mappedFile;	// for memory map (mmap)
 
 
 	// Open Encrypted File with Read Only Capability
@@ -286,10 +383,10 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * fildes = fdIn, the fd to map
 	 * off = offset from beginning of file
 	 */
-	 mappedFiled = mmap(NULL, fileSize, 
+	 mappedFile = mmap(NULL, fileSize, 
 	 		PROT_READ,MMAP_SEQ, fdIn, offset_in);
 	// Error Check
-	 if (mappedFiled == MAP_FAILED){
+	 if (mappedFile == MAP_FAILED){
 	 	perror("Error:");
 	 	return 1;
 	 }
@@ -298,7 +395,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	unsigned char tempBuf[fileSize]; 	
 
 	// Call ske_decrypt
-	num = ske_decrypt(tempBuf,mappedFiled,fileSize,K);
+	num = ske_decrypt(tempBuf,mappedFile,fileSize,K);
 	
 	// Create Output File with R,W,& Execute Capability
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
@@ -325,7 +422,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	// Close Files & Delete Mappings 
 	close(fdIn);
 	close(fdOut);
-	munmap(mappedFiled, fileSize);
+	munmap(mappedFile, fileSize);
 	
 	// Return number of bytes written
 	return num;
