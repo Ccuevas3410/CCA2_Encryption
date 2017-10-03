@@ -217,7 +217,6 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	for (i=0;i<32;i++) {
 		if(tempHash[i] != K->hmacKey[i]) return -1;
 	}
-	if(memcmp(hmacBuf,tempHash,HM_LEN)) return -1;
 
 	// Decryption
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new(); // cyphertext context
