@@ -104,12 +104,17 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV);//sets up for encryption
 	int num;
 	unsigned char ctBuf[len]; // to hold CT
+	unsigned char ivCtBuf[AES_BLOCK_SIZE+len]; // for combined iv and ct
+	memcpy(ivCtBuf,IV,AES_BLOCK_SIZE);
+
 	EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len);//does the encryption, now outBuf holds the aesCT
 	//now we use hmac on the ct
+	
+	memcpy(ivCtBuf+AES_BLOCK_SIZE,ctBuf,num);
 	unsigned char temphmacKey[HM_LEN];//will hold the hmac of the CT
 	//    hash func,     hmac K,   32, , CT   ,32 , holds hmac of CT
+	//    why include ctBuf as ctbuf and IV
 	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,len,temphmacKey,NULL);
-	printf("HASH1: %s\n",temphmacKey);
 	// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT
 	memcpy(outBuf, IV, 16);//IV has size 16
 	memcpy(outBuf+16, ctBuf, num);//size of len
@@ -210,14 +215,17 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	// generate hash using cyphertext to ensure integrity of CT
 	unsigned char tempHash[HM_LEN]; // to hold return of HMAC
+
+	unsigned char ivCtBuf[len-HM_LEN];
+	memcpy(ivCtBuf,inBuf,len-HM_LEN);
+
 	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,ctSize,tempHash,NULL);
-	printf("HASH2: %s\n",tempHash);
 	// check hash
 	size_t i;
 	for (i=0;i<32;i++) {
-		if(tempHash[i] != K->hmacKey[i]) return -1;
+		if(tempHash[i] != hmacBuf[i]) return -1;
 	}
-
+	
 	// Decryption
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new(); // cyphertext context
 	EVP_DecryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,ivBuf); // Initialize decryption
