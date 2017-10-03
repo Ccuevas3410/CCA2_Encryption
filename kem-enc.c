@@ -57,6 +57,30 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
 	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
 	 * write to fnOut. */
+	unsigned char* tempHash;
+	//struct stat st;
+	size_t fileSize = sizeof(fnIn);
+	//stat(fnIn,&st);
+	//fileSize = st.st_size;
+
+	// SKE KEYGEN
+	unsigned char* x = malloc(HASHLEN);
+	SKE_KEY SK;
+	ske_keyGen(&SK,x,HASHLEN);
+
+	// RSA ENCRYPTION
+	unsigned char* tempOut;
+	unsigned char tempAes[HASHLEN];
+	memcpy(tempAes,SK->aesKey,HASHLEN);
+	int len = rsa_encrypt(tempOut,tempAes,HASHLEN,K); // rsa encrypt
+
+	// HASH FUNCTION
+	HMAC(EVP_sha256(),KDF_KEY,HASHLEN,fnIn,fileSize,tempHash,NULL); // hash SHA256
+
+	memcpy(fnOut,tempOut,len);
+	memcpy(fnOut+len,tempHash,HASHLEN); 
+	// rsa_writePublic(fnOut,K);
+
 	return 0;
 }
 
