@@ -242,7 +242,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	int fdIn, fdOut;	// File Descriptor 
 	struct stat st; 	// File Stats
 	size_t fileSize, num;	// File Size & Bytes written
-	unsigned char* mappedFile;	// for memory map (mmap)
+	unsigned char* mappedFiled;	// for memory map (mmap)
 
 
 	// Open Encrypted File with Read Only Capability
@@ -274,10 +274,10 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * fildes = fdIn, the fd to map
 	 * off = offset from beginning of file
 	 */
-	 mappedFile = mmap(NULL, fileSize, 
+	 mappedFiled = mmap(NULL, fileSize, 
 	 		PROT_READ,MMAP_SEQ, fdIn, offset_in);
 	// Error Check
-	 if (mappedFile == MAP_FAILED){
+	 if (mappedFiled == MAP_FAILED){
 	 	perror("Error:");
 	 	return 1;
 	 }
@@ -286,7 +286,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	unsigned char tempBuf[fileSize]; 	
 
 	// Call ske_decrypt
-	num = ske_decrypt(tempBuf,mappedFile,fileSize,K);
+	num = ske_decrypt(tempBuf,mappedFiled,fileSize,K);
 	
 	// Create Output File with R,W,& Execute Capability
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
@@ -313,7 +313,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	// Close Files & Delete Mappings 
 	close(fdIn);
 	close(fdOut);
-	munmap(mappedFile, fileSize);
+	munmap(mappedFiled, fileSize);
 	
 	// Return number of bytes written
 	return num;
