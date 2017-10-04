@@ -51,7 +51,7 @@ enum modes {
  * */
 
 #define HASHLEN 32 /* for sha256 */
-
+#define KDF_KEY "qVHqkOVJLb7EolR9dsAMVwH1hRCYVx#I"
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;

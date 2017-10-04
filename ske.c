@@ -43,7 +43,7 @@
  * 
  * postcondition:
  * K's HMAC and AES Key gets updated
- */
+ esKey*/
 
 int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 {
