@@ -114,7 +114,7 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	unsigned char temphmacKey[HM_LEN];//will hold the hmac of the CT
 	//    hash func,     hmac K,   32, , CT   ,32 , holds hmac of CT
 	//    why include ctBuf as ctbuf and IV
-	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,len,temphmacKey,NULL);
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ivCtBuf,len+AES_BLOCK_SIZE,temphmacKey,NULL);//ctbuf len
 	// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT
 	memcpy(outBuf, IV, 16);//IV has size 16
 	memcpy(outBuf+16, ctBuf, num);//size of len
@@ -129,7 +129,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
 	/* DONE: write this.  Hint: mmap. */
-
+	printf("LALALA");
 	// Variables
 	int fdIn, fdOut;	// File Descriptor
 	struct stat st;		// File Stats
@@ -140,23 +140,22 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	fdIn = open(fnin,O_RDONLY);
 	// Error Check
 	if (fdIn < 0){
-		perror("Error:");
+		perror("Error:fo");
 		return 1;
 	}
 
 	// Get File Size 
 	stat(fnin, &st);
-	fileSize = st.st_size; //-offset_out;
+	fileSize = st.st_size-offset_out;
 
 	// Mmap - see ske_decrypt_file() for more info
 	mappedFile = mmap(NULL, fileSize,
 			PROT_READ,MMAP_SEQ, fdIn, offset_out);
 	// Error Check
 	if (mappedFile == MAP_FAILED){
-		perror("Error:");
+		perror("Error:m");
 		return 1;
 	}
-
 	// Create a temporary buffer to hold encrypted text
 	unsigned char tempBuf[fileSize];
 
@@ -168,7 +167,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
 	// Error Check
 	if (fdOut < 0){
-		perror("Error:");
+		perror("Error:o");
 		return 1;
 	}
 
@@ -176,7 +175,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	int wc = write(fdOut,tempBuf,num);
 	// Error check
 	if (wc < 0){
-		perror("Error:");
+		perror("Error:w");
 		return 1;
 	}
 
@@ -219,7 +218,7 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	unsigned char ivCtBuf[len-HM_LEN];
 	memcpy(ivCtBuf,inBuf,len-HM_LEN);
 
-	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,ctSize,tempHash,NULL);
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ivCtBuf,len-HM_LEN,tempHash,NULL);//ctBuf,ctSize
 	// check hash
 	size_t i;
 	for (i=0;i<32;i++) {
@@ -251,6 +250,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
 {
 	/* TODO: write this. */
+	printf("DECRTYPFILETHIS");
 	
 	// Variables
 	int fdIn, fdOut;	// File Descriptor 
