@@ -87,9 +87,14 @@ int main(int argc, char *argv[])
 	SKE_KEY K;
 	ske_keyGen(&K,0,0);
 
+	//chin wrote this argv[1] = fnin; argv[2] = fnout; argv[3]= FNOUT
+	printf("ARGC: %d, %s, %s, %s\n", argc, argv[1], argv[2], argv[3]);
+
 	if (argc == 4) {
+	//chin wrote this
+	printf("HIIHI");
 		ske_encrypt_file(argv[2],argv[1],&K,IV,0);
-		ske_decrypt_file(argv[3],argv[2],&K,0);
+	//	ske_decrypt_file(argv[3],argv[2],&K,0);
 		return 0;
 	}
 
