@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
 	//chin wrote this
 	printf("HIIHI");
 		ske_encrypt_file(argv[2],argv[1],&K,IV,0);
-	//	ske_decrypt_file(argv[3],argv[2],&K,0);
+		ske_decrypt_file(argv[3],argv[2],&K,0);
 		return 0;
 	}
 
