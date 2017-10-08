@@ -101,13 +101,15 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	// Encrypt	
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
-	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV);//sets up for encryption
+	if( 1 != EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV))
+			ERR_print_errors_fp(stderr);//sets up for encryption
 	int num;
 	unsigned char ctBuf[len]; // to hold CT
 	unsigned char ivCtBuf[AES_BLOCK_SIZE+len]; // for combined iv and ct
 	memcpy(ivCtBuf,IV,AES_BLOCK_SIZE);
 
-	EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len);//does the encryption, now outBuf holds the aesCT
+	if(1 != EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len))
+		ERR_print_errors_fp(stderr);//does the encryption, now outBuf holds the aesCT
 	//now we use hmac on the ct
 	
 	memcpy(ivCtBuf+AES_BLOCK_SIZE,ctBuf,num);
@@ -136,13 +138,15 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	struct stat st;		// File Stats
 	size_t fileSize, num;	// File Size & Bytes Written
 	unsigned char* mappedFile;	// for mmap
+	if (IV == NULL)
+	   for (int i = 0; i < 16; i++) IV[i] = i;
 
 	// Open Message File with Read Only Capability
 	fdIn = open(fnin,O_RDONLY);
 	// Error Check
 	if (fdIn < 0){
 		perror("Error:fo");
-		return 1;
+		return -1;
 	}
 
 	// Get File Size 
@@ -155,13 +159,13 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	// Error Check
 	if (mappedFile == MAP_FAILED){
 		perror("Error:m");
-		return 1;
+		return -1;
 	}
 	// Create a temporary buffer to hold encrypted text
 	unsigned char tempBuf[fileSize];
 
 	// Call ske_encrypt
-	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,NULL);
+	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,IV);
 	//**SHOULD I CHANGE IN ENCRYPT FUNCTION IV TO NULL?
 	
 	// Create Output File with RWX Capability
