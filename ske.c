@@ -102,14 +102,14 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	// Encrypt	
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
 	if( 1 != EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV))
-			ERR_print_errors_fp(stderr);//sets up for encryption
+			perror("Error");//sets up for encryption
 	int num;
 	unsigned char ctBuf[len]; // to hold CT
 	unsigned char ivCtBuf[AES_BLOCK_SIZE+len]; // for combined iv and ct
 	memcpy(ivCtBuf,IV,AES_BLOCK_SIZE);
 
 	if(1 != EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len))
-		ERR_print_errors_fp(stderr);//does the encryption, now outBuf holds the aesCT
+		perror("Error");//does the encryption, now outBuf holds the aesCT
 	//now we use hmac on the ct
 	
 	memcpy(ivCtBuf+AES_BLOCK_SIZE,ctBuf,num);
@@ -122,7 +122,7 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	memcpy(outBuf+16, ctBuf, num);//size of len
 	memcpy(outBuf+16+num,temphmacKey,HM_LEN);
 	EVP_CIPHER_CTX_free(ctx);//free up space
-	return num;//returns number of btyes written
+	return AES_BLOCK_SIZE+num+HM_LEN;//returns number of btyes written
 		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 }
@@ -132,7 +132,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 {
 	/* TODO: write this.  Hint: mmap. */
 	/* DONE: write this.  Hint: mmap. */
-	printf("LALALA");
 	// Variables
 	int fdIn, fdOut;	// File Descriptor
 	struct stat st;		// File Stats
@@ -145,8 +144,8 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	fdIn = open(fnin,O_RDONLY);
 	// Error Check
 	if (fdIn < 0){
-		perror("Error:fo");
-		return -1;
+		perror("Error in E-fo");
+		return 1;
 	}
 
 	// Get File Size 
@@ -158,21 +157,21 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 			PROT_READ,MMAP_SEQ, fdIn, offset_out);
 	// Error Check
 	if (mappedFile == MAP_FAILED){
-		perror("Error:m");
-		return -1;
+		perror("Error in E-m");
+		return 1;
 	}
 	// Create a temporary buffer to hold encrypted text
-	unsigned char tempBuf[fileSize];
+	unsigned char tempBuf[fileSize+AES_BLOCK_SIZE+HM_LEN]; ///increase filesize
 
 	// Call ske_encrypt
 	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,IV);
 	//**SHOULD I CHANGE IN ENCRYPT FUNCTION IV TO NULL?
 	
 	// Create Output File with RWX Capability
-	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
+	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU); //s_IRWXU
 	// Error Check
 	if (fdOut < 0){
-		perror("Error:o");
+		perror("Error in E-o");
 		return 1;
 	}
 
@@ -180,7 +179,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	int wc = write(fdOut,tempBuf,num);
 	// Error check
 	if (wc < 0){
-		perror("Error:w");
+		perror("Error in E-w");
 		return 1;
 	}
 
@@ -255,7 +254,6 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, size_t offset_in)
 {
 	/* TODO: write this. */
-	printf("DECRTYPFILETHIS");
 	
 	// Variables
 	int fdIn, fdOut;	// File Descriptor 
@@ -268,7 +266,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	fdIn = open(fnin,O_RDONLY);
 	// Error Check
 	if (fdIn < 0){
-		perror("Error:");
+		perror("Error in D-fo");
 		return 1;
 	}
 
@@ -291,13 +289,13 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * prot == R page protection
 	 * flags == determined by professor
 	 * fildes = fdIn, the fd to map
-	 * off = offset from beginning of file
+	 * off = offset from beginning of file, must be multiple of page size
 	 */
 	 mappedFile = mmap(NULL, fileSize, 
 	 		PROT_READ,MMAP_SEQ, fdIn, offset_in);
 	// Error Check
 	 if (mappedFile == MAP_FAILED){
-	 	perror("Error:");
+	 	perror("Error in D-m");
 	 	return 1;
 	 }
 
@@ -311,7 +309,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
 	// Error Check
 	if (fdOut < 0){
-		perror("Error:");
+		perror("Error in D-o");
 		return 1;
 	}
 	
@@ -325,7 +323,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	int wc = write(fdOut,tempBuf,num);
 	// Error Check
 	if ( wc < 0){
-		perror("Error:");
+		perror("Error in D-w");
 		return 1;
 	}
 
