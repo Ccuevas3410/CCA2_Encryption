@@ -76,9 +76,10 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	ske_keyGen(&SK,x,HASHLEN); //generates both hmc&aesKey
 
 	// RSA ENCRYPTION
-	unsigned char* pt = malloc(HASHLEN); //will hold the SK
-	unsigned char* ct = malloc(HASHLEN); //encrypt SK
-	memcpy(pt,SK.aesKey,HASHLEN);
+	unsigned char* pt = malloc(64); //will hold the SK
+	unsigned char* ct = malloc(64); //encrypt SK
+	memcpy(pt,SK.hmacKey,HASHLEN);
+	memcpy(pt,SK.aesKey,HASHLEN);    //NOT SURE HOW TO assign it, pt=HMAC+AES
 	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
 	int len = rsa_encrypt(ct,pt,HASHLEN,K); // rsa encrypt the SK in pt
 
