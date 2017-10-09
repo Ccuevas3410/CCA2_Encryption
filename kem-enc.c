@@ -261,8 +261,14 @@ int main(int argc, char *argv[]) {
 	RSA_KEY K; 
 	switch (mode) {
 		case ENC:
+			kem_encrypt(fnOut,fnIn,&K);
+			break;
 		case DEC:
+			kem_decrypt(fnOut,fnIn,&K);
+			break;
 		case GEN:
+			rsa_keyGen(nBits,&K);
+			break;
 		default:
 			return 1;
 	}
