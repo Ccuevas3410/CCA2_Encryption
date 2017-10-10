@@ -11,15 +11,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <openssl/sha.h>
-<<<<<<< HEAD
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
-
-=======
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fcntl.h>
->>>>>>> master
 #include "ske.h"
 #include "rsa.h"
 #include "prf.h"
@@ -65,28 +61,17 @@ enum modes {
 
 #define HASHLEN 32 /* for sha256 */
 #define KDF_KEY "qVHqkOVJLb7EolR9dsAMVwH1hRCYVx#I"
-<<<<<<< HEAD
 
-=======
->>>>>>> master
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
 	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
 	 * write to fnOut. */
-<<<<<<< HEAD
-	
-	//struct stat st;
-	size_t fileSize = sizeof(fnIn);
-	//stat(fnIn,&st);
-	//fileSize = st.st_size;
-=======
 
 	/*READ FIRST: so here for the kem-encrypt what i did is basically
 	 * generate a SKE key, then I take that SK and encrypt it using RSA then
 	 * hash it. The actual encryption of the fnIn file is encrypted using
 	 * ske_encrypt_file function*/
->>>>>>> master
 
 	// SKE KEYGEN
 	unsigned char* x = malloc(HASHLEN); //tempholder for SK
@@ -94,24 +79,9 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	ske_keyGen(&SK,x,HASHLEN); //generates both hmc&aesKey
 
 	// RSA ENCRYPTION
-<<<<<<< HEAD
-	unsigned char tempOut[HASHLEN*2];
-	//unsigned char tempAes[HASHLEN] = SK->aesKey;
-	//memcpy(tempAes,SK->aesKey,HASHLEN);
-	int len = rsa_encrypt(tempOut,SK.aesKey,HASHLEN,K); // rsa encrypt
-
-	// HASH FUNCTION
-	unsigned char tempHash[HASHLEN*2];
-	HMAC(EVP_sha256(),KDF_KEY,HASHLEN,fnIn,fileSize,tempHash,NULL); // hash SHA256
-
-	memcpy(fnOut,tempOut,len);
-	memcpy(fnOut+len,tempHash,HASHLEN); 
-	// rsa_writePublic(fnOut,K);
-
-=======
 	unsigned char* pt = malloc(64); //will hold the SK
 	unsigned char* ct = malloc(64); //encrypt SK
-	memcpy(pt,SK.hmacKey,HASHLEN); // first half holds HMAC
+	memcpy(pt,SK.hmacKey,HASHLEN); // first half holds HMACkey
 	memcpy(pt+HASHLEN,SK.aesKey,HASHLEN);    // second half holds aeskey
 	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
 	int len = rsa_encrypt(ct,pt,HASHLEN,K); // rsa encrypt the SK in pt
@@ -124,7 +94,6 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	unsigned char* IV=malloc(16);
 	randBytes(IV,16);
 	ske_encrypt_file(fnOut,fnIn,&SK,IV,0);     //assuming that ske_encrypt_file works, after masking the SK into RSA to share we just encrypt the file using SKE
->>>>>>> master
 	return 0;
 }
 
