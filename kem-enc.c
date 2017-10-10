@@ -79,21 +79,42 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	ske_keyGen(&SK,x,HASHLEN); //generates both hmc&aesKey
 
 	// RSA ENCRYPTION
-	unsigned char* pt = malloc(64); //will hold the SK
-	unsigned char* ct = malloc(64); //encrypt SK
-	memcpy(pt,SK.hmacKey,HASHLEN); // first half holds HMACkey
-	memcpy(pt+HASHLEN,SK.aesKey,HASHLEN);    // second half holds aeskey
+	unsigned char* pt = malloc(128); //will hold the SK
+	unsigned char* ct = malloc(128); //encrypt SK
 	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
-	int len = rsa_encrypt(ct,pt,HASHLEN,K); // rsa encrypt the SK in pt
 
 	// HASH FUNCTION
 	unsigned char* tempHash = malloc(64);
-	HMAC(EVP_sha512(),KDF_KEY,HASHLEN,pt,len,tempHash,NULL); // hash SHA512
+	HMAC(EVP_sha512(),KDF_KEY,HASHLEN,pt,64,tempHash,NULL); // hash256 on the plain text, which are the keys
+	//we do a hash on the plain text so that when we check the hash on the
+	//pt when decrypting we can confirm that the key hasnt been tempered.
+	memcpy(pt,SK.hmacKey,HASHLEN); // first half holds HMACkey
+	memcpy(pt+HASHLEN,SK.aesKey,HASHLEN);    // second half holds aeskey
+	memcpy(pt+HASHLEN+HASHLEN,tempHash,64);
+	rsa_encrypt(ct,pt,HASHLEN,K); // rsa encrypt the SK in pt
+
+	int fdOut;         
+	fdOut = open(fnOut,O_RDWR|O_CREAT,S_IRWXU);
+	// Error Check
+	if (fdOut < 0){
+	    perror("Error:");
+	     return 1;
+	 }
+
+	int wc = write(fdOut,ct,128);
+	// Error Check
+	if ( wc < 0){
+	     perror("Error:");
+		return 1;
+	 }
+  
+	// Close Files & Delete Mappings 
+	close(fdOut);
 	
 	//encrypting the file
 	unsigned char* IV=malloc(16);
 	randBytes(IV,16);
-	ske_encrypt_file(fnOut,fnIn,&SK,IV,0);     //assuming that ske_encrypt_file works, after masking the SK into RSA to share we just encrypt the file using SKE
+	ske_encrypt_file(fnOut+128,fnIn,&SK,IV,0);     //assuming that ske_encrypt_file works, after masking the SK into RSA to share we just encrypt the file using SKE
 	return 0;
 }
 
@@ -134,20 +155,20 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
                 perror("Error:");
                   return 1;
          }	
-	size_t textLen = rsa_numBytesN(K);  //gets size of the text file 
-	unsigned char* Encryptedfile = malloc(textLen); //allocate a space to store the ct
-	memcpy(Encryptedfile, mappedFile, textLen); 
+	size_t keyLen = rsa_numBytesN(K);  //gets size of the Key length 
+	unsigned char* Encryptedfilekey = malloc(keyLen); //allocate a space to store the ct
+	memcpy(Encryptedfilekey, mappedFile, keyLen); 
 
 	//RSA Decrypt
-	unsigned char* Decryptedfile = malloc(textLen);  //holds the decrypted text from RSA
-	rsa_decrypt(Decryptedfile,Encryptedfile,textLen,K); //decrypts the key
+	unsigned char* Decryptedfilekey = malloc(keyLen);  //holds the decrypted text from RSA
+	rsa_decrypt(Decryptedfilekey,Encryptedfilekey,keyLen,K); //decrypts the key
 
         // generate hash using cyphertext to ensure integrity of CT
         unsigned char* tempHash=malloc(64); // to hold return of HMAC
-        HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfile,textLen,tempHash,NULL);//ctBuf,ctSize
+        HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfilekey,keyLen,tempHash,NULL);//ctBuf,ctSize
 
 	unsigned char* symk = malloc(64);
-	memcpy(symk,mappedFile+textLen,64);
+	memcpy(symk,mappedFile+keyLen,64);
 	size_t i;
          for (i=0;i<32;i++) 
 	 {
@@ -155,13 +176,13 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
 	 }
 
 	SKE_KEY SK;
-	memcpy(SK.hmacKey,Decryptedfile,32);	 
-	memcpy(SK.aesKey,Decryptedfile,32);	 
+	memcpy(SK.hmacKey,Decryptedfilekey,32);	 
+	memcpy(SK.aesKey,Decryptedfilekey,32);	 
 
 	// Decryption
-	size_t SKE_size = st.st_size - 64 - textLen;
+	size_t SKE_size = st.st_size - keyLen;
 	unsigned char* SKE_CT = malloc(SKE_size);
-	memcpy(SKE_CT,mappedFile+textLen+64,64);
+	memcpy(SKE_CT,mappedFile+keyLen,64);
 	
 	unsigned char* PT = malloc(SKE_size);
 	ske_decrypt(PT,SKE_CT,SKE_size,&SK);
@@ -185,10 +206,6 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
         close(fdIn);
         close(fdOut);
         munmap(mappedFile, fileSize);
-
-	
-
-
 
 	return 0;
 }
