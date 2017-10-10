@@ -87,7 +87,9 @@ int main(int argc, char *argv[])
 	SKE_KEY K;
 	ske_keyGen(&K,0,0);
 
+
 	if (argc == 4) {
+	//chin wrote this
 		ske_encrypt_file(argv[2],argv[1],&K,IV,0);
 		ske_decrypt_file(argv[3],argv[2],&K,0);
 		return 0;

@@ -5,15 +5,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <string.h>
+#include <openssl/hmac.h>
+#include <string.h>  /* memcpy */
+#include <errno.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <openssl/sha.h>
+<<<<<<< HEAD
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
+=======
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+>>>>>>> master
 #include "ske.h"
 #include "rsa.h"
 #include "prf.h"
+#define HM_LEN 32
+
 
 static const char* usage =
 "Usage: %s [OPTIONS]...\n"
@@ -54,24 +65,36 @@ enum modes {
 
 #define HASHLEN 32 /* for sha256 */
 #define KDF_KEY "qVHqkOVJLb7EolR9dsAMVwH1hRCYVx#I"
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
 	/* TODO: encapsulate random symmetric key (SK) using RSA and SHA256;
 	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
 	 * write to fnOut. */
+<<<<<<< HEAD
 	
 	//struct stat st;
 	size_t fileSize = sizeof(fnIn);
 	//stat(fnIn,&st);
 	//fileSize = st.st_size;
+=======
+
+	/*READ FIRST: so here for the kem-encrypt what i did is basically
+	 * generate a SKE key, then I take that SK and encrypt it using RSA then
+	 * hash it. The actual encryption of the fnIn file is encrypted using
+	 * ske_encrypt_file function*/
+>>>>>>> master
 
 	// SKE KEYGEN
-	unsigned char* x = malloc(HASHLEN);
-	SKE_KEY SK;
-	ske_keyGen(&SK,x,HASHLEN);
+	unsigned char* x = malloc(HASHLEN); //tempholder for SK
+	SKE_KEY SK;  //generates the actual hmcKey & aesKey holder
+	ske_keyGen(&SK,x,HASHLEN); //generates both hmc&aesKey
 
 	// RSA ENCRYPTION
+<<<<<<< HEAD
 	unsigned char tempOut[HASHLEN*2];
 	//unsigned char tempAes[HASHLEN] = SK->aesKey;
 	//memcpy(tempAes,SK->aesKey,HASHLEN);
@@ -85,16 +108,119 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	memcpy(fnOut+len,tempHash,HASHLEN); 
 	// rsa_writePublic(fnOut,K);
 
+=======
+	unsigned char* pt = malloc(64); //will hold the SK
+	unsigned char* ct = malloc(64); //encrypt SK
+	memcpy(pt,SK.hmacKey,HASHLEN); // first half holds HMAC
+	memcpy(pt+HASHLEN,SK.aesKey,HASHLEN);    // second half holds aeskey
+	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
+	int len = rsa_encrypt(ct,pt,HASHLEN,K); // rsa encrypt the SK in pt
+
+	// HASH FUNCTION
+	unsigned char* tempHash = malloc(64);
+	HMAC(EVP_sha512(),KDF_KEY,HASHLEN,pt,len,tempHash,NULL); // hash SHA512
+	
+	//encrypting the file
+	unsigned char* IV=malloc(16);
+	randBytes(IV,16);
+	ske_encrypt_file(fnOut,fnIn,&SK,IV,0);     //assuming that ske_encrypt_file works, after masking the SK into RSA to share we just encrypt the file using SKE
+>>>>>>> master
 	return 0;
 }
 
 /* NOTE: make sure you check the decapsulation is valid before continuing */
-int kem_decrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
+int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
 {
 	/* TODO: write this. */
 	/* step 1: recover the symmetric key */
 	/* step 2: check decapsulation */
 	/* step 3: derive key from ephemKey and decrypt data. */
+
+	/*READ FIRST:here is the backwar concept, we first open the file that we
+	 * encrypted. The first thing is to get the SK back by decrypting the
+	 * RSA, after the we optained the plain text in this case is the SK and
+	 * we check the hmac, from there we extract both hmackey and aeskey. now
+	 * we proceed to decrypt the actual message and write it out into the fnout file.*/
+
+	  int fdIn, fdOut;        // File Descriptor 
+          struct stat st;         // File Stats
+          size_t fileSize;   // File Size & Bytes written
+          unsigned char* mappedFile;      // for memory map (mmap)
+   
+          // Open Encrypted File with Read Only Capability
+          fdIn = open(fnin,O_RDONLY);
+          // Error Check
+          if (fdIn < 0){
+              perror("Error:");
+                  return 1;
+          }
+         // Get File Size
+         stat(fnin, &st);
+         fileSize = st.st_size;
+
+	 mappedFile = mmap(NULL, fileSize, PROT_READ,MAP_PRIVATE, fdIn, 0);
+         // Error Check
+         if (mappedFile == MAP_FAILED)
+		 {
+                perror("Error:");
+                  return 1;
+         }	
+	size_t textLen = rsa_numBytesN(K);  //gets size of the text file 
+	unsigned char* Encryptedfile = malloc(textLen); //allocate a space to store the ct
+	memcpy(Encryptedfile, mappedFile, textLen); 
+
+	//RSA Decrypt
+	unsigned char* Decryptedfile = malloc(textLen);  //holds the decrypted text from RSA
+	rsa_decrypt(Decryptedfile,Encryptedfile,textLen,K); //decrypts the key
+
+        // generate hash using cyphertext to ensure integrity of CT
+        unsigned char* tempHash=malloc(64); // to hold return of HMAC
+        HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfile,textLen,tempHash,NULL);//ctBuf,ctSize
+
+	unsigned char* symk = malloc(64);
+	memcpy(symk,mappedFile+textLen,64);
+	size_t i;
+         for (i=0;i<32;i++) 
+	 {
+		if(symk[i] != tempHash[i] ) return -1;
+	 }
+
+	SKE_KEY SK;
+	memcpy(SK.hmacKey,Decryptedfile,32);	 
+	memcpy(SK.aesKey,Decryptedfile,32);	 
+
+	// Decryption
+	size_t SKE_size = st.st_size - 64 - textLen;
+	unsigned char* SKE_CT = malloc(SKE_size);
+	memcpy(SKE_CT,mappedFile+textLen+64,64);
+	
+	unsigned char* PT = malloc(SKE_size);
+	ske_decrypt(PT,SKE_CT,SKE_size,&SK);
+
+	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
+	// Error Check
+	if (fdOut < 0){
+	    perror("Error:");
+	     return 1;
+	 }
+
+
+	int wc = write(fdOut,PT,SKE_size);
+        // Error Check
+        if ( wc < 0){
+             perror("Error:");
+                return 1;
+         }
+  
+        // Close Files & Delete Mappings 
+        close(fdIn);
+        close(fdOut);
+        munmap(mappedFile, fileSize);
+
+	
+
+
+
 	return 0;
 }
 
@@ -165,13 +291,22 @@ int main(int argc, char *argv[]) {
 	/* TODO: finish this off.  Be sure to erase sensitive data
 	 * like private keys when you're done with them (see the
 	 * rsa_shredKey function). */
+
+	RSA_KEY K; 
 	switch (mode) {
 		case ENC:
+			kem_encrypt(fnOut,fnIn,&K);
+			break;
 		case DEC:
+			kem_decrypt(fnOut,fnIn,&K);
+			break;
 		case GEN:
+			rsa_keyGen(nBits,&K);
+			break;
 		default:
 			return 1;
 	}
+	rsa_shredKey(&K);
 
 	return 0;
 }

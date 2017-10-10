@@ -43,7 +43,7 @@
  * 
  * postcondition:
  * K's HMAC and AES Key gets updated
- */
+ esKey*/
 
 int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 {
@@ -101,26 +101,28 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	// Encrypt	
 	EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();//sets up context for CT
-	EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV);//sets up for encryption
+	if( 1 != EVP_EncryptInit_ex(ctx,EVP_aes_256_ctr(),0,K->aesKey,IV))
+			perror("Error");//sets up for encryption
 	int num;
 	unsigned char ctBuf[len]; // to hold CT
 	unsigned char ivCtBuf[AES_BLOCK_SIZE+len]; // for combined iv and ct
 	memcpy(ivCtBuf,IV,AES_BLOCK_SIZE);
 
-	EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len);//does the encryption, now outBuf holds the aesCT
+	if(1 != EVP_EncryptUpdate(ctx,ctBuf,&num,inBuf,len))
+		perror("Error");//does the encryption, now outBuf holds the aesCT
 	//now we use hmac on the ct
 	
 	memcpy(ivCtBuf+AES_BLOCK_SIZE,ctBuf,num);
 	unsigned char temphmacKey[HM_LEN];//will hold the hmac of the CT
 	//    hash func,     hmac K,   32, , CT   ,32 , holds hmac of CT
 	//    why include ctBuf as ctbuf and IV
-	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,len,temphmacKey,NULL);
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ivCtBuf,len+AES_BLOCK_SIZE,temphmacKey,NULL);//ctbuf len
 	// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT
 	memcpy(outBuf, IV, 16);//IV has size 16
 	memcpy(outBuf+16, ctBuf, num);//size of len
 	memcpy(outBuf+16+num,temphmacKey,HM_LEN);
 	EVP_CIPHER_CTX_free(ctx);//free up space
-	return num;//returns number of btyes written
+	return AES_BLOCK_SIZE+num+HM_LEN;//returns number of btyes written
 		 /* TODO: should return number of bytes written, which
 	             hopefully matches ske_getOutputLen(...). */
 }
@@ -128,47 +130,48 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		SKE_KEY* K, unsigned char* IV, size_t offset_out)
 {
+	/* TODO: write this.  Hint: mmap. */
 	/* DONE: write this.  Hint: mmap. */
-
 	// Variables
 	int fdIn, fdOut;	// File Descriptor
 	struct stat st;		// File Stats
 	size_t fileSize, num;	// File Size & Bytes Written
 	unsigned char* mappedFile;	// for mmap
+	if (IV == NULL)
+	   for (int i = 0; i < 16; i++) IV[i] = i;
 
 	// Open Message File with Read Only Capability
 	fdIn = open(fnin,O_RDONLY);
 	// Error Check
 	if (fdIn < 0){
-		perror("Error:");
+		perror("Error in E-fo");
 		return 1;
 	}
 
 	// Get File Size 
 	stat(fnin, &st);
-	fileSize = st.st_size; //-offset_out;
+	fileSize = st.st_size-offset_out;
 
 	// Mmap - see ske_decrypt_file() for more info
 	mappedFile = mmap(NULL, fileSize,
 			PROT_READ,MMAP_SEQ, fdIn, offset_out);
 	// Error Check
 	if (mappedFile == MAP_FAILED){
-		perror("Error:");
+		perror("Error in E-m");
 		return 1;
 	}
-
 	// Create a temporary buffer to hold encrypted text
-	unsigned char tempBuf[fileSize];
+	unsigned char tempBuf[fileSize+AES_BLOCK_SIZE+HM_LEN]; ///increase filesize
 
 	// Call ske_encrypt
-	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,NULL);
+	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,IV);
 	//**SHOULD I CHANGE IN ENCRYPT FUNCTION IV TO NULL?
 	
 	// Create Output File with RWX Capability
-	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
+	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU); //s_IRWXU
 	// Error Check
 	if (fdOut < 0){
-		perror("Error:");
+		perror("Error in E-o");
 		return 1;
 	}
 
@@ -176,7 +179,7 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	int wc = write(fdOut,tempBuf,num);
 	// Error check
 	if (wc < 0){
-		perror("Error:");
+		perror("Error in E-w");
 		return 1;
 	}
 
@@ -219,7 +222,7 @@ size_t ske_decrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	unsigned char ivCtBuf[len-HM_LEN];
 	memcpy(ivCtBuf,inBuf,len-HM_LEN);
 
-	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ctBuf,ctSize,tempHash,NULL);
+	HMAC(EVP_sha256(),K->hmacKey,HM_LEN,ivCtBuf,len-HM_LEN,tempHash,NULL);//ctBuf,ctSize
 	// check hash
 	size_t i;
 	for (i=0;i<32;i++) {
@@ -263,7 +266,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	fdIn = open(fnin,O_RDONLY);
 	// Error Check
 	if (fdIn < 0){
-		perror("Error:");
+		perror("Error in D-fo");
 		return 1;
 	}
 
@@ -286,13 +289,13 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * prot == R page protection
 	 * flags == determined by professor
 	 * fildes = fdIn, the fd to map
-	 * off = offset from beginning of file
+	 * off = offset from beginning of file, must be multiple of page size
 	 */
 	 mappedFile = mmap(NULL, fileSize, 
 	 		PROT_READ,MMAP_SEQ, fdIn, offset_in);
 	// Error Check
 	 if (mappedFile == MAP_FAILED){
-	 	perror("Error:");
+	 	perror("Error in D-m");
 	 	return 1;
 	 }
 
@@ -306,7 +309,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
 	// Error Check
 	if (fdOut < 0){
-		perror("Error:");
+		perror("Error in D-o");
 		return 1;
 	}
 	
@@ -320,7 +323,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	int wc = write(fdOut,tempBuf,num);
 	// Error Check
 	if ( wc < 0){
-		perror("Error:");
+		perror("Error in D-w");
 		return 1;
 	}
 
