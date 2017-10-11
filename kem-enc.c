@@ -155,34 +155,32 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
                 perror("Error:");
                   return 1;
          }	
-	size_t keyLen = rsa_numBytesN(K);  //gets size of the Key length 
-	unsigned char* Encryptedfilekey = malloc(keyLen); //allocate a space to store the ct
-	memcpy(Encryptedfilekey, mappedFile, keyLen); 
 
 	//RSA Decrypt
-	unsigned char* Decryptedfilekey = malloc(keyLen);  //holds the decrypted text from RSA
-	rsa_decrypt(Decryptedfilekey,Encryptedfilekey,keyLen,K); //decrypts the key
+	unsigned char* Encryptedfile = malloc(64);
+	memcpy(Encryptedfile,mappedFile,64);
 
-        // generate hash using cyphertext to ensure integrity of CT
-        unsigned char* tempHash=malloc(64); // to hold return of HMAC
-        HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfilekey,keyLen,tempHash,NULL);//ctBuf,ctSize
+	unsigned char* Decryptedfile = malloc(64);  //holds the decrypted text from RSA
+	rsa_decrypt(Decryptedfile,Encryptedfile,64,K); //decrypts the key
 
-	unsigned char* symk = malloc(64);
-	memcpy(symk,mappedFile+keyLen,64);
-	size_t i;
-         for (i=0;i<32;i++) 
-	 {
-		if(symk[i] != tempHash[i] ) return -1;
-	 }
+	// generate hash using cyphertext to ensure integrity of CT
+	unsigned char* tempHash=malloc(64); // to hold return of HMAC
+	HMAC(EVP_sha512(),KDF_KEY,HM_LEN,Decryptedfile,64,tempHash,NULL);//ctBuf,ctSize
+
+	unsigned char* hashCheck = malloc(64);
+	memcpy(hashCheck,mappedFile+64,64);
+	for (size_t i=0;i<HASHLEN*2;i++) {
+		if(hashCheck[i] != tempHash[i] ) return -1;
+	}
 
 	SKE_KEY SK;
-	memcpy(SK.hmacKey,Decryptedfilekey,32);	 
-	memcpy(SK.aesKey,Decryptedfilekey,32);	 
+	memcpy(SK.hmacKey,Decryptedfile,32); 
+	memcpy(SK.aesKey,Decryptedfile+HASHLEN,32);	 
 
 	// Decryption
-	size_t SKE_size = st.st_size - keyLen;
+	size_t SKE_size = st.st_size - 128;
 	unsigned char* SKE_CT = malloc(SKE_size);
-	memcpy(SKE_CT,mappedFile+keyLen,64);
+	memcpy(SKE_CT,mappedFile+128,SKE_size);
 	
 	unsigned char* PT = malloc(SKE_size);
 	ske_decrypt(PT,SKE_CT,SKE_size,&SK);
@@ -202,6 +200,7 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
                 return 1;
          }
   
+		
         // Close Files & Delete Mappings 
         close(fdIn);
         close(fdOut);
@@ -263,7 +262,7 @@ int main(int argc, char *argv[]) {
 				break;
 			case 'g':
 				mode = GEN;
-				strncpy(fnOut,optarg,FNLEN);
+				strncpy(fnOut,optarg,FNLEN); 
 				break;
 			case 'b':
 				nBits = atol(optarg);
