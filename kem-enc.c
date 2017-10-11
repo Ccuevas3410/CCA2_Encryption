@@ -84,14 +84,14 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
 
 	// HASH FUNCTION
-	unsigned char* tempHash = malloc(64);
-	HMAC(EVP_sha512(),KDF_KEY,HASHLEN,pt,64,tempHash,NULL); // hash256 on the plain text, which are the keys
 	//we do a hash on the plain text so that when we check the hash on the
 	//pt when decrypting we can confirm that the key hasnt been tempered.
 	memcpy(pt,SK.hmacKey,HASHLEN); // first half holds HMACkey
 	memcpy(pt+HASHLEN,SK.aesKey,HASHLEN);    // second half holds aeskey
-	memcpy(pt+HASHLEN+HASHLEN,tempHash,64);
+	unsigned char* tempHash = malloc(64);
+	HMAC(EVP_sha512(),KDF_KEY,HASHLEN,pt,64,tempHash,NULL); // hash256 on the plain text, which are the keys
 	rsa_encrypt(ct,pt,HASHLEN,K); // rsa encrypt the SK in pt
+	memcpy(ct+HASHLEN+HASHLEN,tempHash,64);
 
 	int fdOut;         
 	fdOut = open(fnOut,O_RDWR|O_CREAT,S_IRWXU);
