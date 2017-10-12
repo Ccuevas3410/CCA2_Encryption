@@ -22,6 +22,7 @@
 #define HM_LEN 32
 
 
+//victor why
 static const char* usage =
 "Usage: %s [OPTIONS]...\n"
 "Encrypt or decrypt data.\n\n"
