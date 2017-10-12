@@ -271,8 +271,8 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 
 	// Get File Size
 	stat(fnin, &st);
-	fileSize = st.st_size;
-
+	fileSize = st.st_size-offset_in; // one cause of newline added?
+	printf("FSIZE:%lu\n",fileSize);
 	// Memory map the file with mmap
 	/* Description of pa=mmap(addr, len, prot, flags, fildes, off);
 	 *
@@ -290,7 +290,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * fildes = fdIn, the fd to map
 	 * off = offset from beginning of file, must be multiple of page size
 	 */
-	 mappedFile = mmap(NULL, fileSize, 
+	 mappedFile =(unsigned char*) mmap(NULL, fileSize, 
 	 		PROT_READ,MMAP_SEQ, fdIn, 0);
 	// Error Check
 	 if (mappedFile == MAP_FAILED){
@@ -299,10 +299,10 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 }
 
  	// Create a temporary buffer to hold decrypted text
-	unsigned char tempBuf[fileSize-AES_BLOCK_SIZE-HM_LEN]; 	
+	unsigned char tempBuf[fileSize-AES_BLOCK_SIZE-HM_LEN]; //from hmlena nd aes block 	
 
 	// Call ske_decrypt
-	num = ske_decrypt(tempBuf,mappedFile,fileSize,K); //plus offset
+	num = ske_decrypt(tempBuf,mappedFile+offset_in,fileSize,K); //plus offset
 	
 	// Create Output File with R,W,& Execute Capability
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
@@ -318,7 +318,8 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	//WHAT ABOUT HMLEN OR AESBLOCK SIZE IN THAT FUNCTION?
 
 	// Write tempBuf to file
-	int wc = write(fdOut,tempBuf,num-16-32);
+	int wc = write(fdOut,tempBuf,num); //less 16 32
+	
 	// Error Check
 	if ( wc < 0){
 		printf("NUM,%lu",num);
