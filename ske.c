@@ -137,8 +137,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	struct stat st;		// File Stats
 	size_t fileSize, num;	// File Size & Bytes Written
 	unsigned char* mappedFile;	// for mmap
-	if (IV == NULL)
-	   for (int i = 0; i < 16; i++) IV[i] = i;
 
 	// Open Message File with Read Only Capability
 	fdIn = open(fnin,O_RDONLY);
@@ -150,11 +148,11 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 
 	// Get File Size 
 	stat(fnin, &st);
-	fileSize = st.st_size-offset_out;
+	fileSize = st.st_size;
 
 	// Mmap - see ske_decrypt_file() for more info
 	mappedFile = mmap(NULL, fileSize,
-			PROT_READ,MMAP_SEQ, fdIn, offset_out);
+			PROT_READ,MMAP_SEQ, fdIn, 0);
 	// Error Check
 	if (mappedFile == MAP_FAILED){
 		perror("Error in E-m");
@@ -165,7 +163,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 
 	// Call ske_encrypt
 	num = ske_encrypt(tempBuf,mappedFile,fileSize,K,IV);
-	//**SHOULD I CHANGE IN ENCRYPT FUNCTION IV TO NULL?
 	
 	// Create Output File with RWX Capability
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU); //s_IRWXU
@@ -174,6 +171,9 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		perror("Error in E-o");
 		return 1;
 	}
+	
+	// Offset the File 
+	lseek(fdOut, offset_out, SEEK_SET);
 
 	// Write tempBuf to file
 	int wc = write(fdOut,tempBuf,num);
@@ -187,7 +187,6 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 	close(fdIn);
 	close(fdOut);
 	munmap(mappedFile, fileSize);
-
 	// Return number of bytes written
 	return num;
 }
@@ -272,7 +271,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 
 	// Get File Size
 	stat(fnin, &st);
-	fileSize = st.st_size-offset_in;
+	fileSize = st.st_size;
 
 	// Memory map the file with mmap
 	/* Description of pa=mmap(addr, len, prot, flags, fildes, off);
@@ -292,7 +291,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * off = offset from beginning of file, must be multiple of page size
 	 */
 	 mappedFile = mmap(NULL, fileSize, 
-	 		PROT_READ,MMAP_SEQ, fdIn, offset_in);
+	 		PROT_READ,MMAP_SEQ, fdIn, 0);
 	// Error Check
 	 if (mappedFile == MAP_FAILED){
 	 	perror("Error in D-m");
@@ -300,10 +299,10 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 }
 
  	// Create a temporary buffer to hold decrypted text
-	unsigned char tempBuf[fileSize]; 	
+	unsigned char tempBuf[fileSize-AES_BLOCK_SIZE-HM_LEN]; 	
 
 	// Call ske_decrypt
-	num = ske_decrypt(tempBuf,mappedFile,fileSize,K);
+	num = ske_decrypt(tempBuf,mappedFile,fileSize,K); //plus offset
 	
 	// Create Output File with R,W,& Execute Capability
 	fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);
@@ -312,17 +311,17 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 		perror("Error in D-o");
 		return 1;
 	}
-	
+
 	//**** DOUBLE CHECK THAT WRITE TO TEMPBUF IS OKAY
 	//CHECK THE NUM = SIZE OF BYTES
-	//OR SHOULD I MANULLY CHECK
 	//DO I HAVE TO USE SKE_OUTPUTSIZE
 	//WHAT ABOUT HMLEN OR AESBLOCK SIZE IN THAT FUNCTION?
-	
+
 	// Write tempBuf to file
-	int wc = write(fdOut,tempBuf,num);
+	int wc = write(fdOut,tempBuf,num-16-32);
 	// Error Check
 	if ( wc < 0){
+		printf("NUM,%lu",num);
 		perror("Error in D-w");
 		return 1;
 	}
