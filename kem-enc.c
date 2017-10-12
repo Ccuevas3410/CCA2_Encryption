@@ -131,6 +131,8 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
 
 	  int fdIn;			// File Descriptor 
           unsigned char* mappedFile;    // for memory map (mmap)
+	  size_t fileSize;
+	  struct stat st;
    
           // Open Encrypted File with Read Only Capability
           fdIn = open(fnin,O_RDONLY);
@@ -140,8 +142,10 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
                   return 1;
           }
          // Get File Size
+	 stat(fnin, &st);
+	 fileSize = st.st_size;
 
-	 mappedFile = mmap(NULL, 96, PROT_READ,MAP_PRIVATE, fdIn, 0);
+	 mappedFile = mmap(NULL,fileSize,PROT_READ,MAP_PRIVATE, fdIn, 0);
          // Error Check
          if (mappedFile == MAP_FAILED)
 		 {
