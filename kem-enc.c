@@ -62,7 +62,7 @@ enum modes {
 
 #define KDF_KEY "qVHqkOVJLb7EolR9dsAMVwH1hRCYVx#I"
 #define HASHLEN 32 /* for sha256 */
-#define KEYLEN  64 
+size_t lenofRSA;
 
 int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 {
@@ -76,21 +76,21 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	 * ske_encrypt_file function*/
 
 	// SKE KEYGEN
-	unsigned char* x = malloc(KEYLEN); //tempholder for SK
+	size_t keylen = rsa_numBytesN(K);  //using justin idea of making the x as big as the rsa key.
+	unsigned char* x = malloc(keylen); //tempholder for SK
 	SKE_KEY SK;  //generates the actual hmcKey & aesKey holder
-	ske_keyGen(&SK,x,KEYLEN); //generates both hmc&aesKey
+	ske_keyGen(&SK,x,keylen); //generates both hmc&aesKey
 	// RSA ENCRYPTION
-	unsigned char* ct = malloc(96); //encrypt SK
+	unsigned char* ct = malloc(keylen+HASHLEN); //holds the encrypted x + hash
 	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
 
 	// HASH FUNCTION
 	//we do a hash on the plain text so that when we check the hash on the
 	//pt when decrypting we can confirm that the key hasnt been tempered.
 	unsigned char* tempHash = malloc(HASHLEN);
-	HMAC(EVP_sha256(),KDF_KEY,HASHLEN,x,KEYLEN,tempHash,NULL); // hash256 on the plain text, which are the keys
-	size_t lenofRSA;
-	lenofRSA = rsa_encrypt(ct,x,KEYLEN,K); // rsa encrypt the SK in pt
-	memcpy(ct+lenofRSA,tempHash,HASHLEN);
+	HMAC(EVP_sha256(),KDF_KEY,HASHLEN,x,keylen,tempHash,NULL); // hash256 on the x
+	rsa_encrypt(ct,x,keylen,K); // rsa encrypt the x, ct contains the rsa(x) 
+	memcpy(ct+keylen,tempHash,HASHLEN); //appends the rsa(x)+h(x)
 
 	int fdOut;         
 	fdOut = open(fnOut,O_RDWR|O_CREAT,S_IRWXU);
@@ -99,7 +99,8 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	    perror("Error - File Open");
 	     return 1;
 	 }
-	int wc = write(fdOut,ct,lenofRSA+HASHLEN);
+
+	int wc = write(fdOut,ct,keylen+HASHLEN);
 	// Error Check
 	if ( wc < 0){
 	     perror("Error - File Write");
@@ -112,7 +113,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	//encrypting the file
 	unsigned char* IV=malloc(16);
 	randBytes(IV,16);
-	ske_encrypt_file(fnOut,fnIn,&SK,IV,lenofRSA+HASHLEN); 
+	ske_encrypt_file(fnOut,fnIn,&SK,IV,keylen+HASHLEN); 
 	return 0;
 }
 
@@ -153,55 +154,32 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
                 perror("Error:");
                   return 1;
          }	
-
-	//RSA Decrypt
-	unsigned char* Encryptedfile = malloc(KEYLEN);
-	memcpy(Encryptedfile,mappedFile,KEYLEN);
-
-	unsigned char* Decryptedfile = malloc(KEYLEN);  //holds the decrypted text from RSA
-	rsa_decrypt(Decryptedfile,Encryptedfile,KEYLEN,K); //decrypts the key
-
-	// generate hash using cyphertext to ensure integrity of CT
-	unsigned char* tempHash=malloc(32); // to hold return of HMAC
-	HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfile,KEYLEN,tempHash,NULL);//ctBuf,ctSize
-
-	unsigned char* hashCheck = malloc(32);
-	memcpy(hashCheck,mappedFile+KEYLEN,32);
-	for (size_t i=0;i<HASHLEN;i++) {
-		if(hashCheck[i] != tempHash[i] ) return -1;
-	}
-
-	SKE_KEY SK;
-	ske_keyGen(&SK,Decryptedfile,KEYLEN);
 	close(fdIn);
 
-	ske_decrypt_file(fnout,fnin,&SK,96);
-	/*// Decryption*/
-	/*size_t SKE_size = st.st_size - 128;*/
-	/*unsigned char* SKE_CT = malloc(SKE_size);*/
-	/*memcpy(SKE_CT,mappedFile+128,SKE_size);*/
-	
-	/*unsigned char* PT = malloc(SKE_size);*/
-	/*ske_decrypt(PT,SKE_CT,SKE_size,&SK);*/
+	//RSA Decrypt
+	size_t keylen = rsa_numBytesN(K); //same size as above for the rsa(x)
+	unsigned char* Encryptedfile = malloc(keylen);
+	memcpy(Encryptedfile,mappedFile,keylen); //only copies up to rsa(x) length
 
-	/*fdOut = open(fnout,O_RDWR|O_CREAT,S_IRWXU);*/
-	/*// Error Check*/
-	/*if (fdOut < 0){*/
-	    /*perror("Error:");*/
-	     /*return 1;*/
-	 /*}*/
+	unsigned char* Decryptedfile = malloc(keylen);  //holds the decrypted text from RSA
+	rsa_decrypt(Decryptedfile,Encryptedfile,keylen,K); //decrypts the key
 
+	// generate hash using cyphertext to ensure integrity of CT
+	unsigned char* tempHash=malloc(HASHLEN); // to hold return of HMAC
+	HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfile,keylen,tempHash,NULL);//the hash is wrong somehow
 
-	/*int wc = write(fdOut,PT,SKE_size);*/
-        /*// Error Check*/
-        /*if ( wc < 0){*/
-             /*perror("Error:");*/
-                /*return 1;*/
-         /*}*/
-  
-		
-        /*// Close Files & Delete Mappings */
+	unsigned char* hashCheck = malloc(HASHLEN);
+	memcpy(hashCheck,mappedFile+keylen,HASHLEN);
 
+	for (size_t i=0;i<HASHLEN;i++) {
+		if(hashCheck[i] != tempHash[i] ){
+			perror("HASH incorrect");
+			return -1;}
+	}
+	SKE_KEY SK;
+	ske_keyGen(&SK,Decryptedfile,keylen);
+
+	ske_decrypt_file(fnout,fnin,&SK,keylen+HASHLEN);
 	return 0;
 }
 
