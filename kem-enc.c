@@ -82,13 +82,15 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	ske_keyGen(&SK,x,keylen); //generates both hmc&aesKey
 	// RSA ENCRYPTION
 	unsigned char* ct = malloc(keylen+HASHLEN); //holds the encrypted x + hash
-	rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
+	//rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
 
 	// HASH FUNCTION
 	//we do a hash on the plain text so that when we check the hash on the
 	//pt when decrypting we can confirm that the key hasnt been tempered.
 	unsigned char* tempHash = malloc(HASHLEN);
-	HMAC(EVP_sha256(),KDF_KEY,HASHLEN,x,keylen,tempHash,NULL); // hash256 on the x
+
+	unsigned char *SHA256(x,keylen,tempHash); // USING SHA256 
+
 	rsa_encrypt(ct,x,keylen,K); // rsa encrypt the x, ct contains the rsa(x) 
 	memcpy(ct+keylen,tempHash,HASHLEN); //appends the rsa(x)+h(x)
 
@@ -166,7 +168,7 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
 
 	// generate hash using cyphertext to ensure integrity of CT
 	unsigned char* tempHash=malloc(HASHLEN); // to hold return of HMAC
-	HMAC(EVP_sha256(),KDF_KEY,HM_LEN,Decryptedfile,keylen,tempHash,NULL);//the hash is wrong somehow
+	unsigned char *SHA256(Decryptedfile,keylen,tempHash);
 
 	unsigned char* hashCheck = malloc(HASHLEN);
 	memcpy(hashCheck,mappedFile+keylen,HASHLEN);
