@@ -275,19 +275,62 @@ int main(int argc, char *argv[]) {
 	 * rsa_shredKey function). */
 
 	RSA_KEY K; 
+	
+	// Define Variables to prevent redefinition error
+	FILE* rsa_publicKey;
+	FILE* rsa_privateKey;
+
 	switch (mode) {
 		case ENC:
+			// Get Public Key to Encrypt
+			rsa_publicKey = fopen(fnKey,"r");
+			// Error Check
+			if (rsa_publicKey == NULL){
+				printf("ENC PUBLIC KEY ERROR\n");
+				return 1;
+			}
+
+			// Read Public Key from File
+			rsa_readPublic(rsa_publicKey, &K);
+
+			// Encrypt 
 			kem_encrypt(fnOut,fnIn,&K);
+
+			// Close File
+			fclose(rsa_publicKey);
+
+			// Clear Key
+			rsa_shredKey(&K);
+
 			break;
 		case DEC:
+			// Get Private Key to Decrypt
+			rsa_privateKey = fopen(fnOut,"r");
+			// Error Check
+			if (rsa_privateKey == NULL){
+				printf("DEC PRIVATE KEY ERROR\n");
+				return 1;
+			}
+
+			// Read Key from File
+			rsa_readPrivate(rsa_privateKey, &K);
+
+			// Decrypt 
 			kem_decrypt(fnOut,fnIn,&K);
+
+			// Close File
+			fclose(rsa_privateKey);
+
+			// Clear Key
+			rsa_shredKey(&K);
+
 			break;
 		case GEN:
 			// Generate RSA Key
 			rsa_keyGen(nBits,&K);
 			
 			// Create RW File - returns file pointer
-			FILE* rsa_privateKey = fopen(fnOut,"w+");
+			rsa_privateKey = fopen(fnOut,"w+");
 			// Error Check
 			if (rsa_privateKey == NULL){
 				printf("GEN PRIVATE KEY ERROR\n");
@@ -300,7 +343,7 @@ int main(int argc, char *argv[]) {
 			// Append '.pub. to filename for publicKey
 			strcat(fnOut,".pub"); // be sure private goes first
 			// Create RW File
-			FILE* rsa_publicKey = fopen(fnOut,"w+");
+			rsa_publicKey = fopen(fnOut,"w+");
 			// Error Check
 			if (rsa_publicKey == NULL){
 				printf("GEN PUBLIC KEY ERROR\n");
