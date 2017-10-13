@@ -95,13 +95,13 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	fdOut = open(fnOut,O_RDWR);
 	// Error Check
 	if (fdOut < 0){
-	    perror("Error:");
+	    perror("Error - File Open");
 	     return 1;
 	 }
 	int wc = write(fdOut,ct,lenofRSA+HASHLEN);
 	// Error Check
 	if ( wc < 0){
-	     perror("Error:");
+	     perror("Error - File Write");
 		return 1;
 	 }
   
@@ -239,6 +239,7 @@ int main(int argc, char *argv[]) {
 				return 0;
 			case 'i':
 				strncpy(fnIn,optarg,FNLEN);
+				printf("fnin:%s\noptarg:%s\nfnlen:%d\n",fnIn,optarg,FNLEN); // chin
 				break;
 			case 'o':
 				strncpy(fnOut,optarg,FNLEN);
@@ -281,12 +282,43 @@ int main(int argc, char *argv[]) {
 			kem_decrypt(fnOut,fnIn,&K);
 			break;
 		case GEN:
+			// Generate RSA Key
 			rsa_keyGen(nBits,&K);
+			
+			// Create RW File - returns file pointer
+			FILE* rsa_privateKey = fopen(fnOut,"w+");
+			// Error Check
+			if (rsa_privateKey == NULL){
+				printf("GEN PRIVATE KEY ERROR\n");
+				return 1;
+			}
+			
+			// Write Private Key to File
+			rsa_writePrivate(rsa_privateKey, &K);
+			
+			// Append '.pub. to filename for publicKey
+			strcat(fnOut,".pub"); // be sure private goes first
+			// Create RW File
+			FILE* rsa_publicKey = fopen(fnOut,"w+");
+			// Error Check
+			if (rsa_publicKey == NULL){
+				printf("GEN PUBLIC KEY ERROR\n");
+				return 1;
+			}
+
+			// Write Public Key to File
+			rsa_writePublic(rsa_publicKey, &K);
+
+			// Close Files
+			fclose(rsa_privateKey);
+			fclose(rsa_publicKey);
+
+			// Clear Key
+			rsa_shredKey(&K);
 			break;
 		default:
 			return 1;
 	}
-	rsa_shredKey(&K);
 
 	return 0;
 }

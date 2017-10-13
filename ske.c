@@ -172,8 +172,11 @@ size_t ske_encrypt_file(const char* fnout, const char* fnin,
 		return 1;
 	}
 	
-	// Offset the File 
-	lseek(fdOut, offset_out, SEEK_SET);
+	// Offset the File & Error Check 
+	if (lseek(fdOut, offset_out, SEEK_SET) < 0) {
+		perror("Error");
+		return 1;
+	}
 
 	// Write tempBuf to file
 	int wc = write(fdOut,tempBuf,num);
