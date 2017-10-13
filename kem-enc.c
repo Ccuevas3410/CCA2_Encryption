@@ -93,7 +93,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	memcpy(ct+lenofRSA,tempHash,HASHLEN);
 
 	int fdOut;         
-	fdOut = open(fnOut,O_RDWR);
+	fdOut = open(fnOut,O_RDWR|O_CREAT,S_IRWXU);
 	// Error Check
 	if (fdOut < 0){
 	    perror("Error - File Open");
@@ -235,14 +235,13 @@ int main(int argc, char *argv[]) {
 	size_t nBits = 1024;
 	while ((c = getopt_long(argc, argv, "edhi:o:k:r:g:b:", long_opts, &opt_index)) != -1) {
 		switch (c) {
-			case 'h':
+			case 'h': // help
 				printf(usage,argv[0],nBits);
 				return 0;
-			case 'i':
+			case 'i': // argument to fnIn
 				strncpy(fnIn,optarg,FNLEN);
-				printf("fnin:%s\noptarg:%s\nfnlen:%d\n",fnIn,optarg,FNLEN); // chin
 				break;
-			case 'o':
+			case 'o': 
 				strncpy(fnOut,optarg,FNLEN);
 				break;
 			case 'k':
@@ -305,7 +304,7 @@ int main(int argc, char *argv[]) {
 			break;
 		case DEC:
 			// Get Private Key to Decrypt
-			rsa_privateKey = fopen(fnOut,"r");
+			rsa_privateKey = fopen(fnKey,"r");
 			// Error Check
 			if (rsa_privateKey == NULL){
 				printf("DEC PRIVATE KEY ERROR\n");
