@@ -70,30 +70,27 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	 * encrypt fnIn with SK; concatenate encapsulation and cihpertext;
 	 * write to fnOut. */
 
-	/*READ FIRST: so here for the kem-encrypt what i did is basically
-	 * generate a SKE key, then I take that SK and encrypt it using RSA then
-	 * hash it. The actual encryption of the fnIn file is encrypted using
-	 * ske_encrypt_file function*/
-
 	// SKE KEYGEN
-	size_t keylen = rsa_numBytesN(K);  //using justin idea of making the x as big as the rsa key.
-	unsigned char* x = malloc(keylen); //tempholder for SK
-	SKE_KEY SK;  //generates the actual hmcKey & aesKey holder
-	ske_keyGen(&SK,x,keylen); //generates both hmc&aesKey
+	/*Create a random entropy of the same size as the rsa keys length, and
+	 * use it to generate the SKE keys.*/
+	size_t keylen = rsa_numBytesN(K);	    //find what is the size of the rsa Keys
+	unsigned char* x = malloc(keylen);	    //allocate random entropy
+	SKE_KEY SK;				    //ske keys object
+	ske_keyGen(&SK,x,keylen);		    //generating the ske keys
+	
 	// RSA ENCRYPTION
-	unsigned char* ct = malloc(keylen+HASHLEN); //holds the encrypted x + hash
-	//rsa_keyGen(HASHLEN,K);               //generates rsa keys (n,p,q,e,d)
+	/*Here encapsulate the entropy*/
+	unsigned char* ct = malloc(keylen+HASHLEN); //holds rsa(x)+h(x) 
 
 	// HASH FUNCTION
-	//we do a hash on the plain text so that when we check the hash on the
-	//pt when decrypting we can confirm that the key hasnt been tempered.
-	unsigned char* tempHash = malloc(HASHLEN);
+	/*Hash the entropy and append it to rsa(x)*/
+	unsigned char* tempHash = malloc(HASHLEN);  //allocate space for the hash
+	SHA256(x,keylen,tempHash);                  // USING SHA256 
+	rsa_encrypt(ct,x,keylen,K);		    // rsa encrypt the x, ct contains the rsa(x) 
+	memcpy(ct+keylen,tempHash,HASHLEN);	    //appends rsa(x)+h(x) into ct
 
-	SHA256(x,keylen,tempHash); // USING SHA256 
-
-	rsa_encrypt(ct,x,keylen,K); // rsa encrypt the x, ct contains the rsa(x) 
-	memcpy(ct+keylen,tempHash,HASHLEN); //appends the rsa(x)+h(x)
-
+	//Writing into output file
+	/*Manually open the output file and write ct*/
 	int fdOut;         
 	fdOut = open(fnOut,O_RDWR|O_CREAT,S_IRWXU);
 	// Error Check
@@ -101,8 +98,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	    perror("Error - File Open");
 	     return 1;
 	 }
-
-	int wc = write(fdOut,ct,keylen+HASHLEN);
+	int wc = write(fdOut,ct,keylen+HASHLEN);    //writing into output file
 	// Error Check
 	if ( wc < 0){
 	     perror("Error - File Write");
@@ -115,7 +111,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	//encrypting the file
 	unsigned char* IV=malloc(16);
 	randBytes(IV,16);
-	ske_encrypt_file(fnOut,fnIn,&SK,IV,keylen+HASHLEN); 
+	ske_encrypt_file(fnOut,fnIn,&SK,IV,keylen+HASHLEN);	//using the offset we move the cursor to the length of ct, and append the encrypted message 
 	return 0;
 }
 
@@ -127,61 +123,59 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
 	/* step 2: check decapsulation */
 	/* step 3: derive key from ephemKey and decrypt data. */
 
-	/*READ FIRST:here is the backwar concept, we first open the file that we
-	 * encrypted. The first thing is to get the SK back by decrypting the
-	 * RSA, after the we optained the plain text in this case is the SK and
-	 * we check the hmac, from there we extract both hmackey and aeskey. now
-	 * we proceed to decrypt the actual message and write it out into the fnout file.*/
-
-	  int fdIn;			// File Descriptor 
-          unsigned char* mappedFile;    // for memory map (mmap)
-	  size_t fileSize;
-	  struct stat st;
+	int fdIn;			// File Descriptor 
+        unsigned char* mappedFile;	// for memory map (mmap)
+	size_t fileSize;
+	struct stat st;
    
-          // Open Encrypted File with Read Only Capability
-          fdIn = open(fnin,O_RDONLY);
-          // Error Check
-          if (fdIn < 0){
-              perror("Error:");
-                  return 1;
-          }
-         // Get File Size
-	 stat(fnin, &st);
-	 fileSize = st.st_size;
-
-	 mappedFile = mmap(NULL,fileSize,PROT_READ,MAP_PRIVATE, fdIn, 0);
-         // Error Check
-         if (mappedFile == MAP_FAILED)
-		 {
-                perror("Error:");
-                  return 1;
+        // Open Encrypted File with Read Only Capability
+        fdIn = open(fnin,O_RDONLY);
+        // Error Check
+        if (fdIn < 0){
+            perror("Error:");
+                 return 1;
+        }
+        // Get File Size
+	stat(fnin, &st);
+	fileSize = st.st_size;
+	
+	//Copies the file and put it in a buffer
+	mappedFile = mmap(NULL,fileSize,PROT_READ,MAP_PRIVATE, fdIn, 0);
+        // Error Check
+        if (mappedFile == MAP_FAILED)
+	 {
+               perror("Error:");
+                 return 1;
          }	
-	close(fdIn);
+	 close(fdIn);
 
 	//RSA Decrypt
-	size_t keylen = rsa_numBytesN(K); //same size as above for the rsa(x)
-	unsigned char* Encryptedfile = malloc(keylen);
-	memcpy(Encryptedfile,mappedFile,keylen); //only copies up to rsa(x) length
+	/*Extract rsa(x) which is the same size as rsa key and decrypt it to get
+	 * back the entropy, x.*/
+	size_t keylen = rsa_numBytesN(K);		    //same size as above for the rsa(x)
+	unsigned char* Encryptedfile = malloc(keylen);	    //holder for the rsa(x)
+	memcpy(Encryptedfile,mappedFile,keylen);	    //copies up to rsa(x) length
 
-	unsigned char* Decryptedfile = malloc(keylen);  //holds the decrypted text from RSA
-	rsa_decrypt(Decryptedfile,Encryptedfile,keylen,K); //decrypts the key
+	unsigned char* Decryptedfile = malloc(keylen);	    //holds the decrypted entropy from RSA
+	rsa_decrypt(Decryptedfile,Encryptedfile,keylen,K);  //decrypts rsa(x)
 
-	// generate hash using cyphertext to ensure integrity of CT
-	unsigned char* tempHash=malloc(HASHLEN); // to hold return of HMAC
-	SHA256(Decryptedfile,keylen,tempHash);
-
+	//HASH Check
+	/*Hash the entropy and compares it to h(x) */ 
+	unsigned char* tempHash=malloc(HASHLEN);	    //holds the hash
+	SHA256(Decryptedfile,keylen,tempHash);		    //generates the hash for x
 	unsigned char* hashCheck = malloc(HASHLEN);
-	memcpy(hashCheck,mappedFile+keylen,HASHLEN);
+	memcpy(hashCheck,mappedFile+keylen,HASHLEN);	    //extract h(x) from the file 
 
 	for (size_t i=0;i<HASHLEN;i++) {
 		if(hashCheck[i] != tempHash[i] ){
 			perror("HASH incorrect");
 			return -1;}
 	}
+
+	//Generate ske key and decrypt the file
 	SKE_KEY SK;
 	ske_keyGen(&SK,Decryptedfile,keylen);
-
-	ske_decrypt_file(fnout,fnin,&SK,keylen+HASHLEN);
+	ske_decrypt_file(fnout,fnin,&SK,keylen+HASHLEN);    //offset the input file to extract only the ciphertext 
 	return 0;
 }
 

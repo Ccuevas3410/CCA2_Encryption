@@ -96,28 +96,16 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_mul(phi,p1,q1);      
 //~~~~~~~~~~~~~~~~~~~~~~~~Computing E~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//	
 	NEWZ(temp);
-/*	while(1)
-	{
-		mpz_gcd(K->e,temp,phi);  
-		if(mpz_cmp_ui(K->e,1)== 0) 
-		{
-			mpz_set(K->e,temp);
-			break;
-		}
-		else
-		{
-			mpz_add_ui(temp,temp,2);
-		}
-	}
-*/	
 	// Test - What if we have key size = keyBits/8?
 	unsigned char* buffer = malloc(keyBits/8); //create memory
 
-	do {
+	do{
 		randBytes(buffer,keyBits/8); // create randomBytes
 		BYTES2Z(K->e,buffer, keyBits/8); // convert and put into e
 		mpz_gcd(temp,K->e,phi); //compute gcd(e,phi)
-	} while(mpz_cmp_ui(temp,1)); // check that the gcd(e,phi) = 1, yes = 0
+	  }	 
+	while(mpz_cmp_ui(temp,1)); // check that the gcd(e,phi) = 1, yes = 0
+
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~Computind D~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//	
@@ -148,7 +136,7 @@ size_t rsa_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 
 	BYTES2Z(mg,inBuf,len);     
 	mpz_powm(ct,mg,K->e,K->n); // ct = message^e mod n
-	Z2BYTES(outBuf,len,ct);    //
+	Z2BYTES(outBuf,len,ct);    
 
 	mpz_clear(mg); mpz_clear(ct);
 
