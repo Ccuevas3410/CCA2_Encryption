@@ -70,7 +70,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	BYTES2Z(P,p,keyBits/8); //asigned the randombyte to interger into P
     	NEWZ(nextP); 
     	mpz_nextprime(nextP,P);  //finding a prime for nextP
-	if(ISPRIME(nextP)==2)   //makes sure it is prime
+	if(ISPRIME(nextP)==1)   //makes sure it is prime
 	{
 		mpz_set(K->p,nextP);    //sets P into the initKey
 	}
@@ -80,7 +80,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	BYTES2Z(Q,q,keyBits/8); //asigned the randombyte to interger into Q
 	NEWZ(nextQ);
 	mpz_nextprime(nextQ,Q);  //finding a prime for nextQ
-	if(ISPRIME(nextQ)==2)   //make sure it is prime
+	if(ISPRIME(nextQ)==1)   //make sure it is prime
 	{
 		mpz_set(K->q,nextQ);     //sets Q into the initKey
 	}
@@ -109,13 +109,17 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 			mpz_add_ui(temp,temp,2);
 		}
 	}
-*/	unsigned char randBuf[keyBits/8];
+*/	
+	// Test - What if we have key size = keyBits/8?
+	unsigned char* buffer = malloc(keyBits/8); //create memory
+
 	do {
-		randBytes(randBuf,keyBits/8);
-		BYTES2Z(K->e,randBuf,keyBits/8);
-		mpz_gcd(temp,K->e,phi);
-	}
-	while(mpz_cmp_ui(temp,1));
+		randBytes(buffer,keyBits/8); // create randomBytes
+		BYTES2Z(K->e,buffer, keyBits/8); // convert and put into e
+		mpz_gcd(temp,K->e,phi); //compute gcd(e,phi)
+	} while(mpz_cmp_ui(temp,1)); // check that the gcd(e,phi) = 1, yes = 0
+
+
 //~~~~~~~~~~~~~~~~~~~~~~~Computind D~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//	
 	NEWZ(t); //temporary asignment 
 	mpz_invert(t,K->e,phi);
