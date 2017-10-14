@@ -53,8 +53,8 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 
 	// Variable for temporary key storage of length KLEN_SKE
 	// Note KLEN_SKE is 32
-	size_t KLEN_2X = KLEN_SKE*2;
-	unsigned char tempKey[KLEN_2X];//size 64
+	size_t k2 = KLEN_SKE*2;
+	unsigned char tempKey[k2];//size 64
 
 	// If entropy is given apply KDF - HMACSHA512 elseif is null randBytes for random key
 	if(entropy)
@@ -74,7 +74,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 		 *
 		 * Output goes in tempKey
 		 */ 
-		randBytes(tempKey,KLEN_2X);
+		randBytes(tempKey,k2);
 	}
 
 	// Copy values into the associated Keys in the object K
@@ -275,7 +275,6 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	// Get File Size
 	stat(fnin, &st);
 	fileSize = st.st_size-offset_in; // one cause of newline added?
-	printf("FSIZE:%lu\n",fileSize);
 	// Memory map the file with mmap
 	/* Description of pa=mmap(addr, len, prot, flags, fildes, off);
 	 *
@@ -293,7 +292,7 @@ size_t ske_decrypt_file(const char* fnout, const char* fnin,
 	 * fildes = fdIn, the fd to map
 	 * off = offset from beginning of file, must be multiple of page size
 	 */
-	 mappedFile =(unsigned char*) mmap(NULL, fileSize, 
+	 mappedFile = mmap(NULL, fileSize, 
 	 		PROT_READ,MMAP_SEQ, fdIn, 0);
 	// Error Check
 	 if (mappedFile == MAP_FAILED){

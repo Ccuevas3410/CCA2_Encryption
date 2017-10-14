@@ -89,7 +89,7 @@ int kem_encrypt(const char* fnOut, const char* fnIn, RSA_KEY* K)
 	//pt when decrypting we can confirm that the key hasnt been tempered.
 	unsigned char* tempHash = malloc(HASHLEN);
 
-	unsigned char *SHA256(x,keylen,tempHash); // USING SHA256 
+	SHA256(x,keylen,tempHash); // USING SHA256 
 
 	rsa_encrypt(ct,x,keylen,K); // rsa encrypt the x, ct contains the rsa(x) 
 	memcpy(ct+keylen,tempHash,HASHLEN); //appends the rsa(x)+h(x)
@@ -168,7 +168,7 @@ int kem_decrypt(const char* fnout, const char* fnin, RSA_KEY* K)
 
 	// generate hash using cyphertext to ensure integrity of CT
 	unsigned char* tempHash=malloc(HASHLEN); // to hold return of HMAC
-	unsigned char *SHA256(Decryptedfile,keylen,tempHash);
+	SHA256(Decryptedfile,keylen,tempHash);
 
 	unsigned char* hashCheck = malloc(HASHLEN);
 	memcpy(hashCheck,mappedFile+keylen,HASHLEN);

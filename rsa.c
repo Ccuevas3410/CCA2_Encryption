@@ -74,6 +74,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	{
 		mpz_set(K->p,nextP);    //sets P into the initKey
 	}
+	else printf("P IS NOT PRIME");
 //~~~~~~~~~~~~~~~~~~~~~~~~Finding the second prime~~~~~~~~~~~~~~~~~~~~~~~~~//
 	NEWZ(Q);
 	BYTES2Z(Q,q,keyBits/8); //asigned the randombyte to interger into Q
@@ -83,6 +84,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	{
 		mpz_set(K->q,nextQ);     //sets Q into the initKey
 	}
+	else printf("Q IS NOT PRIME");
 //~~~~~~~~~~~~~~~~~~~~~~~~Computing N~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 	NEWZ(N);
 	mpz_mul(N,K->p,K->q);          //computes N.
@@ -94,8 +96,7 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	mpz_mul(phi,p1,q1);      
 //~~~~~~~~~~~~~~~~~~~~~~~~Computing E~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//	
 	NEWZ(temp);
-	mpz_set_ui(temp,3);
-	while(1)
+/*	while(1)
 	{
 		mpz_gcd(K->e,temp,phi);  
 		if(mpz_cmp_ui(K->e,1)== 0) 
@@ -108,6 +109,13 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 			mpz_add_ui(temp,temp,2);
 		}
 	}
+*/	unsigned char randBuf[keyBits/8];
+	do {
+		randBytes(randBuf,keyBits/8);
+		BYTES2Z(K->e,randBuf,keyBits/8);
+		mpz_gcd(temp,K->e,phi);
+	}
+	while(mpz_cmp_ui(temp,1));
 //~~~~~~~~~~~~~~~~~~~~~~~Computind D~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//	
 	NEWZ(t); //temporary asignment 
 	mpz_invert(t,K->e,phi);
