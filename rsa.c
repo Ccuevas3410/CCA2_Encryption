@@ -70,19 +70,21 @@ int rsa_keyGen(size_t keyBits, RSA_KEY* K)
 	BYTES2Z(P,p,keyBits/8); //asigned the randombyte to interger into P
     	NEWZ(nextP); 
     	mpz_nextprime(nextP,P);  //finding a prime for nextP
-	if(ISPRIME(nextP)==1)   //makes sure it is prime
+	if(ISPRIME(nextP)==2)   //makes sure it is prime
 	{
 		mpz_set(K->p,nextP);    //sets P into the initKey
 	}
+	else mpz_nextprime(K->p,nextP);
 //~~~~~~~~~~~~~~~~~~~~~~~~Finding the second prime~~~~~~~~~~~~~~~~~~~~~~~~~//
 	NEWZ(Q);
 	BYTES2Z(Q,q,keyBits/8); //asigned the randombyte to interger into Q
 	NEWZ(nextQ);
 	mpz_nextprime(nextQ,Q);  //finding a prime for nextQ
-	if(ISPRIME(nextP)==1)   //make sure it is prime
+	if(ISPRIME(nextQ)==2)   //make sure it is prime
 	{
 		mpz_set(K->q,nextQ);     //sets Q into the initKey
 	}
+	else mpz_nextprime(K->q,nextQ);
 //~~~~~~~~~~~~~~~~~~~~~~~~Computing N~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 	NEWZ(N);
 	mpz_mul(N,K->p,K->q);          //computes N.
