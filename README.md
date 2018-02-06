@@ -1,6 +1,20 @@
-# csc480 project1 README
+# CCA2 Encryption
 
-## To Push Changes
+> Build a public key cryptosystem using a key encapsulation mechanism (KEM)
+
+## Background
+    - For:
+        - CSC480 Computer Security Project1
+    - Idea:
+        - build asymmetric system
+            - RSA 
+        - build symmetric system
+            - 
+        - KEM
+            - 
+
+## Member Notes for Git
+### To Push Changes
 1. Push the changes to own branch
 	- `git add <file>`
 	- `git commit -a -m <message>`
@@ -12,7 +26,7 @@
 3. Go back to own branch
 	- `git checkout <user branch>`
 
-## To Fetch Changes
+### To Fetch Changes
 1. Make sure local branch is updated
 	- `git add <files>`
 	- `git commit -a -m "message"`
@@ -25,3 +39,8 @@
 	- `git merge master`
 	- `git push`
 
+## Members
+- [Justin F. Chin](https://github.com/justinfchin)
+- [Victor Hong](https://github.com/vhong000)
+- [Sunny Mei](https://github.com/Sunny3oy)
+- [Carlos Ng](https://github.com/Cng000)
