@@ -26,11 +26,15 @@
             - Generate SKE key with x, where x has a much 
 
 ## Overview
-- 
-
+-  
 
 ## How to Run
-- 
+1. make
+    - run the make file
+2. ./kem-enc -h
+
+## Notes
+- This was tested on an UbuntuLinux environment.
                 
 ## Member Notes for Git
 ### To Push Changes

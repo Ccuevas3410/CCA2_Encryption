@@ -65,7 +65,7 @@ int ske_keyGen(SKE_KEY* K, unsigned char* entropy, size_t entLen)
 		 * 
 		 * Output goes in tempKey and size in NULL
 		 */
-		HMAC(EVP_sha512(),KDF_KEY,HM_LEN,entropy,entLen,
+	    HMAC(EVP_sha512(),KDF_KEY,HM_LEN,entropy,entLen,
 				tempKey,NULL);
 	}
 	else
@@ -120,7 +120,7 @@ size_t ske_encrypt(unsigned char* outBuf, unsigned char* inBuf, size_t len,
 	// now we concat the IV+outBuf+temphmackey as our new outBuf which will be the CT
 	memcpy(outBuf, IV, 16);//IV has size 16
 	memcpy(outBuf+16, ctBuf, num);//size of len
-	memcpy(outBuf+16+num,temphmacKey,HM_LEN);
+memcpy(outBuf+16+num,temphmacKey,HM_LEN);
 	EVP_CIPHER_CTX_free(ctx);//free up space
 	return AES_BLOCK_SIZE+num+HM_LEN;//returns number of btyes written
 		 /* TODO: should return number of bytes written, which
