@@ -3,27 +3,34 @@
 > Build a public key cryptosystem using a key encapsulation mechanism (KEM)
 
 ## Background
-    - For:
-        - CSC480 Computer Security Project1
-    - Idea:
-        - build asymmetric system
-            - RSA
-                - using GMP to operate with arbitrary precision numbers 
-        - build symmetric system denoted as SKE
-            - SKE that works only on buffers
-            - SKE that works on files
-            - SKE
-                - Encryption:
-                    - 16 byte IV | C = AES(plaintext) | 32byte SHA256 HMAC(C)
-                    - IV = initialization vectors, unpredictable random number to make sure that when same message is encrypted more than once, the ciphertext is different 
-                - Decryption:
-                    1. Check hmac of iv + c
-                    2. Decrypt ciphertext 
-        - KEM:
-            - combine RSA and SKE on files
-            - ciphertext will be:
-                - RSA-KEM(x) | SKE ciphertext
-                - Generate SKE key with x, where x has a much 
+- For:
+    - CSC480 Computer Security Project1
+- Idea:
+    - build asymmetric system
+        - RSA
+            - using GMP to operate with arbitrary precision numbers 
+    - build symmetric system denoted as SKE
+        - SKE that works only on buffers
+        - SKE that works on files
+        - SKE
+            - Encryption:
+                - 16 byte IV | C = AES(plaintext) | 32byte SHA256 HMAC(C)
+                - IV = initialization vectors, unpredictable random number to make sure that when same message is encrypted more than once, the ciphertext is different 
+            - Decryption:
+                1. Check hmac of iv + c
+                2. Decrypt ciphertext 
+    - KEM:
+        - combine RSA and SKE on files
+        - ciphertext will be:
+            - RSA-KEM(x) | SKE ciphertext
+            - Generate SKE key with x, where x has a much 
+
+## Overview
+- 
+
+
+## How to Run
+- 
                 
 ## Member Notes for Git
 ### To Push Changes
