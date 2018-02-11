@@ -4,7 +4,8 @@
 
 ## Background
 - For:
-    - CSC480 Computer Security Project1
+    - CCNY CSC480 Computer Security
+    	- Fall 2017
 - Idea:
     - build asymmetric system
         - RSA
@@ -23,15 +24,13 @@
         - combine RSA and SKE on files
         - ciphertext will be:
             - RSA-KEM(x) | SKE ciphertext
-            - Generate SKE key with x, where x has a much 
-
-## Overview
--  
+            - Generate SKE key with x, where x has as much entropy as the key
 
 ## How to Run
-1. make
+1. git clone & cd to directory
+2. `make`
     - run the make file
-2. ./kem-enc -h
+3. `./kem-enc -h`
 
 ## Notes
 - This was tested on an UbuntuLinux environment.
